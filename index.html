@@ -245,13 +245,24 @@
 
                 <!-- Column 4: Current vMix Playlist -->
                 <div class="bg-gray-900 rounded-lg p-4 flex flex-col">
-                    <div class="flex justify-between items-center mb-4">
+                    <div class="flex justify-between items-center mb-2">
                         <h3 class="text-lg font-medium">vMix Playlist</h3>
                         <div class="flex gap-2 items-center">
                             <button id="autoRefreshToggle" class="text-gray-400 hover:text-green-400 text-sm" title="Auto-refresh">Auto</button>
                             <button id="refreshVmixPlaylist" class="text-blue-400 hover:text-blue-300 text-sm">Refresh</button>
                             <button id="clearVmixPlaylist" class="text-red-400 hover:text-red-300 text-sm">Clear</button>
                         </div>
+                    </div>
+                    <!-- Status indicators -->
+                    <div id="vmixInputStatus" class="flex gap-3 mb-3 text-xs">
+                        <span id="playbackStatus" class="flex items-center gap-1">
+                            <span id="playbackIndicator" class="w-2 h-2 rounded-full bg-gray-600"></span>
+                            <span id="playbackText" class="text-gray-500">--</span>
+                        </span>
+                        <span id="programStatus" class="flex items-center gap-1">
+                            <span id="programIndicator" class="w-2 h-2 rounded-full bg-gray-600"></span>
+                            <span id="programText" class="text-gray-500">--</span>
+                        </span>
                     </div>
                     <div id="vmixPlaylistContent" class="space-y-1 flex-1 overflow-y-auto">
                         <p class="text-gray-500 italic text-center text-sm">Click refresh to load</p>

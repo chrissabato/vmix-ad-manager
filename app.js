@@ -94,6 +94,10 @@ const App = {
             autoRefreshToggle: document.getElementById('autoRefreshToggle'),
             clearVmixPlaylist: document.getElementById('clearVmixPlaylist'),
             vmixPlaylistContent: document.getElementById('vmixPlaylistContent'),
+            playbackIndicator: document.getElementById('playbackIndicator'),
+            playbackText: document.getElementById('playbackText'),
+            programIndicator: document.getElementById('programIndicator'),
+            programText: document.getElementById('programText'),
 
             // Status log
             statusLog: document.getElementById('statusLog'),
@@ -575,6 +579,16 @@ const App = {
 
             if (!silent) this.log(`Found input: ${playlistInput.getAttribute('title')} (#${playlistInput.getAttribute('number')})`);
 
+            // Get playback state
+            const state = playlistInput.getAttribute('state') || 'Unknown';
+            this.updatePlaybackIndicator(state);
+
+            // Check if input is in Program (active)
+            const inputNumber = playlistInput.getAttribute('number');
+            const activeInput = xmlDoc.querySelector('active');
+            const isInProgram = activeInput && activeInput.textContent === inputNumber;
+            this.updateProgramIndicator(isInProgram);
+
             // Get list items from the playlist input
             const listElement = playlistInput.querySelector('list');
             const items = playlistInput.querySelectorAll('list item');
@@ -583,7 +597,7 @@ const App = {
             const selectedIndexAttr = playlistInput.getAttribute('selectedIndex');
             const selectedIndex = selectedIndexAttr ? parseInt(selectedIndexAttr) : -1;
 
-            if (!silent) this.log(`Selected index: ${selectedIndex}`);
+            if (!silent) this.log(`Selected index: ${selectedIndex}, State: ${state}, In Program: ${isInProgram}`);
 
             if (items.length === 0) {
                 this.elements.vmixPlaylistContent.innerHTML = '<p class="text-gray-500 italic text-center text-sm">Playlist is empty</p>';
@@ -621,6 +635,50 @@ const App = {
         } catch (error) {
             this.elements.vmixPlaylistContent.innerHTML = '<p class="text-yellow-400 text-sm text-center">Could not parse playlist</p>';
             if (!silent) this.log(`Parse error: ${error.message}`, 'error');
+        }
+    },
+
+    updatePlaybackIndicator(state) {
+        const indicator = this.elements.playbackIndicator;
+        const text = this.elements.playbackText;
+
+        // Remove all state classes
+        indicator.classList.remove('bg-gray-600', 'bg-green-500', 'bg-yellow-500', 'bg-red-500');
+        text.classList.remove('text-gray-500', 'text-green-400', 'text-yellow-400', 'text-red-400');
+
+        switch (state.toLowerCase()) {
+            case 'running':
+                indicator.classList.add('bg-green-500');
+                text.classList.add('text-green-400');
+                text.textContent = 'Playing';
+                break;
+            case 'paused':
+                indicator.classList.add('bg-yellow-500');
+                text.classList.add('text-yellow-400');
+                text.textContent = 'Paused';
+                break;
+            default:
+                indicator.classList.add('bg-gray-600');
+                text.classList.add('text-gray-500');
+                text.textContent = state;
+        }
+    },
+
+    updateProgramIndicator(isInProgram) {
+        const indicator = this.elements.programIndicator;
+        const text = this.elements.programText;
+
+        indicator.classList.remove('bg-gray-600', 'bg-red-600');
+        text.classList.remove('text-gray-500', 'text-red-400');
+
+        if (isInProgram) {
+            indicator.classList.add('bg-red-600');
+            text.classList.add('text-red-400');
+            text.textContent = 'LIVE';
+        } else {
+            indicator.classList.add('bg-gray-600');
+            text.classList.add('text-gray-500');
+            text.textContent = 'Off Air';
         }
     },
 
