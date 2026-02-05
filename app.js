@@ -77,6 +77,9 @@ const App = {
             sendToVmix: document.getElementById('sendToVmix'),
             playlistPreview: document.getElementById('playlistPreview'),
             previewList: document.getElementById('previewList'),
+            refreshVmixPlaylist: document.getElementById('refreshVmixPlaylist'),
+            clearVmixPlaylist: document.getElementById('clearVmixPlaylist'),
+            vmixPlaylistContent: document.getElementById('vmixPlaylistContent'),
 
             // Status log
             statusLog: document.getElementById('statusLog'),
@@ -112,6 +115,8 @@ const App = {
             if (e.key === 'Enter') this.selectCustomDuration();
         });
         this.elements.sendToVmix.addEventListener('click', () => this.generateAndSendPlaylist());
+        this.elements.refreshVmixPlaylist.addEventListener('click', () => this.refreshVmixPlaylist());
+        this.elements.clearVmixPlaylist.addEventListener('click', () => this.clearVmixPlaylist());
 
         // Status log
         this.elements.clearLog.addEventListener('click', () => this.clearLog());
@@ -265,20 +270,149 @@ const App = {
 
     generatePreview() {
         if (this.videos.length === 0) {
-            this.elements.playlistPreview.classList.add('hidden');
+            this.elements.previewList.innerHTML = '<p class="text-gray-500 italic text-center text-sm">No videos in library</p>';
+            return;
+        }
+
+        if (this.selectedDurationSeconds === 0) {
+            this.elements.previewList.innerHTML = '<p class="text-gray-500 italic text-center text-sm">Select a duration to preview</p>';
             return;
         }
 
         const count = Math.floor(this.selectedDurationSeconds / 30);
         const selected = this.generateWeightedSelection(count);
 
-        this.elements.playlistPreview.classList.remove('hidden');
         this.elements.previewList.innerHTML = selected.map((video, index) => `
-            <div class="text-gray-300">
+            <div class="text-gray-300 text-sm py-1 px-2 bg-gray-800 rounded mb-1">
                 <span class="text-gray-500">${index + 1}.</span> ${this.escapeHtml(video.filename)}
-                <span class="text-xs ${this.getPriorityColor(video.priority)}">(${this.getPriorityLabel(video.priority)})</span>
             </div>
         `).join('');
+    },
+
+    async refreshVmixPlaylist() {
+        if (!this.settings.vmixIp || !this.settings.vmixInput) {
+            this.elements.vmixPlaylistContent.innerHTML = '<p class="text-red-400 text-sm text-center">Configure vMix settings first</p>';
+            return;
+        }
+
+        this.elements.vmixPlaylistContent.innerHTML = '<p class="text-gray-400 text-sm text-center">Loading...</p>';
+        this.log('Fetching vMix state...');
+
+        try {
+            // Fetch the full vMix XML state
+            const params = new URLSearchParams({
+                ip: this.settings.vmixIp,
+                port: this.settings.vmixPort
+            });
+
+            const response = await fetch(`api.php?${params.toString()}&getState=1`);
+            const data = await response.json();
+
+            if (data.success && data.response) {
+                this.parseAndDisplayVmixPlaylist(data.response);
+            } else {
+                throw new Error(data.error || 'Failed to get vMix state');
+            }
+        } catch (error) {
+            this.elements.vmixPlaylistContent.innerHTML = `<p class="text-red-400 text-sm text-center">${this.escapeHtml(error.message)}</p>`;
+            this.log(`Error fetching playlist: ${error.message}`, 'error');
+        }
+    },
+
+    parseAndDisplayVmixPlaylist(xmlString) {
+        try {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
+
+            // Find the input that matches our playlist name
+            const inputs = xmlDoc.querySelectorAll('input');
+            let playlistInput = null;
+
+            inputs.forEach(input => {
+                const title = input.getAttribute('title') || '';
+                const name = input.getAttribute('name') || '';
+                if (title === this.settings.vmixInput || name === this.settings.vmixInput) {
+                    playlistInput = input;
+                }
+            });
+
+            if (!playlistInput) {
+                this.elements.vmixPlaylistContent.innerHTML = `<p class="text-yellow-400 text-sm text-center">Input "${this.escapeHtml(this.settings.vmixInput)}" not found</p>`;
+                return;
+            }
+
+            // Get list items from the playlist input
+            const items = playlistInput.querySelectorAll('list item');
+            const selectedIndex = parseInt(playlistInput.getAttribute('selectedIndex')) || 0;
+
+            if (items.length === 0) {
+                this.elements.vmixPlaylistContent.innerHTML = '<p class="text-gray-500 italic text-center text-sm">Playlist is empty</p>';
+                return;
+            }
+
+            let html = '';
+            items.forEach((item, index) => {
+                const fullPath = item.textContent || '';
+                const filename = fullPath.split('\\').pop().split('/').pop();
+                const isSelected = index === selectedIndex;
+
+                html += `
+                    <div class="text-sm py-1 px-2 rounded mb-1 ${isSelected ? 'bg-green-900 text-green-300' : 'bg-gray-800 text-gray-300'}">
+                        <span class="text-gray-500">${index + 1}.</span> ${this.escapeHtml(filename)}
+                        ${isSelected ? '<span class="text-xs ml-1">(current)</span>' : ''}
+                    </div>
+                `;
+            });
+
+            this.elements.vmixPlaylistContent.innerHTML = html;
+            this.log(`Loaded ${items.length} items from vMix playlist.`);
+        } catch (error) {
+            this.elements.vmixPlaylistContent.innerHTML = '<p class="text-yellow-400 text-sm text-center">Could not parse playlist</p>';
+            this.log(`Parse error: ${error.message}`, 'error');
+        }
+    },
+
+    async clearVmixPlaylist() {
+        if (!this.settings.vmixIp || !this.settings.vmixInput) {
+            this.log('Error: Configure vMix settings first.', 'error');
+            return;
+        }
+
+        if (!confirm('Clear all items from the vMix playlist?')) {
+            return;
+        }
+
+        this.log('Clearing vMix playlist...');
+
+        try {
+            const params = new URLSearchParams({
+                ip: this.settings.vmixIp,
+                port: this.settings.vmixPort,
+                function: 'SelectAll',
+                input: this.settings.vmixInput
+            });
+
+            await fetch(`api.php?${params.toString()}`);
+
+            const deleteParams = new URLSearchParams({
+                ip: this.settings.vmixIp,
+                port: this.settings.vmixPort,
+                function: 'ListRemoveAll',
+                input: this.settings.vmixInput
+            });
+
+            const response = await fetch(`api.php?${deleteParams.toString()}`);
+            const data = await response.json();
+
+            if (data.success) {
+                this.elements.vmixPlaylistContent.innerHTML = '<p class="text-gray-500 italic text-center text-sm">Playlist is empty</p>';
+                this.log('vMix playlist cleared.', 'success');
+            } else {
+                throw new Error(data.error || 'Failed to clear playlist');
+            }
+        } catch (error) {
+            this.log(`Error clearing playlist: ${error.message}`, 'error');
+        }
     },
 
     // Normalize folder path (ensure trailing backslash)

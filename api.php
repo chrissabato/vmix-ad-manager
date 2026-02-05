@@ -23,11 +23,18 @@ $vmixPort = $_GET['port'] ?? '8088';
 $function = $_GET['function'] ?? '';
 $input = $_GET['input'] ?? '';
 $value = $_GET['value'] ?? '';
+$getState = isset($_GET['getState']);
 
 // Validate required parameters
-if (empty($vmixIp) || empty($function)) {
+if (empty($vmixIp)) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Missing required parameters (ip, function)']);
+    echo json_encode(['success' => false, 'error' => 'Missing required parameter: ip']);
+    exit;
+}
+
+if (!$getState && empty($function)) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'error' => 'Missing required parameter: function']);
     exit;
 }
 
@@ -46,16 +53,21 @@ if ($vmixPort < 1 || $vmixPort > 65535) {
 
 // Build vMix API URL
 $vmixUrl = "http://{$vmixIp}:{$vmixPort}/api/";
-$params = ['Function' => $function];
 
-if (!empty($input)) {
-    $params['Input'] = $input;
-}
-if (!empty($value)) {
-    $params['Value'] = $value;
-}
+if ($getState) {
+    // Get full XML state - no parameters needed
+} else {
+    $params = ['Function' => $function];
 
-$vmixUrl .= '?' . http_build_query($params);
+    if (!empty($input)) {
+        $params['Input'] = $input;
+    }
+    if (!empty($value)) {
+        $params['Value'] = $value;
+    }
+
+    $vmixUrl .= '?' . http_build_query($params);
+}
 
 // Make request to vMix
 $context = stream_context_create([
