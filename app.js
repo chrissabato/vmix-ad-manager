@@ -615,13 +615,14 @@ const App = {
             items.forEach((item, index) => {
                 const fullPath = item.textContent || '';
                 const filename = fullPath.split('\\').pop().split('/').pop();
+                const displayName = filename.replace(/\.mp4$/i, '');
                 // Match by filename with the current playing file from input title
                 const isSelected = filename.toLowerCase() === currentFilename.toLowerCase();
 
                 html += `
                     <div class="text-sm py-1 px-2 rounded mb-1 ${isSelected ? 'bg-green-900 text-green-300' : 'bg-gray-800 text-gray-300'}">
-                        <span class="text-gray-500">${index + 1}.</span> ${this.escapeHtml(filename)}
-                        ${isSelected ? '<span class="text-xs ml-1">(current)</span>' : ''}
+                        ${isSelected ? '<span class="mr-1">▶</span>' : `<span class="text-gray-500 mr-1">${index + 1}.</span>`}
+                        ${this.escapeHtml(displayName)}
                     </div>
                 `;
             });
