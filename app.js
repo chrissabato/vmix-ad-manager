@@ -621,7 +621,7 @@ const App = {
 
                 html += `
                     <div class="text-sm py-1 px-2 rounded mb-1 ${isSelected ? 'bg-green-900 text-green-300' : 'bg-gray-800 text-gray-300'}">
-                        ${isSelected ? '<span class="mr-1">▶</span>' : `<span class="text-gray-500 mr-1">${index + 1}.</span>`}
+                        ${isSelected ? '<span class="mr-1">→</span>' : `<span class="text-gray-500 mr-1">${index + 1}.</span>`}
                         ${this.escapeHtml(displayName)}
                     </div>
                 `;
