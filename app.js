@@ -4,6 +4,8 @@ const App = {
     // State
     videos: [],
     pendingFiles: [],
+    selectedDurationSeconds: 0,
+    dashboardMode: false,
     settings: {
         vmixIp: '',
         vmixPort: '8088',
@@ -20,9 +22,11 @@ const App = {
         this.cacheElements();
         this.loadSettings();
         this.loadVideos();
+        this.loadDashboardMode();
         this.bindEvents();
         this.updateVideoCount();
-        this.updateAdCount();
+        this.updateConnectionStatus();
+        this.updateLibraryCount();
         this.renderVideoList();
         this.log('Application initialized.');
     },
@@ -57,10 +61,20 @@ const App = {
             videoCount: document.getElementById('videoCount'),
             clearAllVideos: document.getElementById('clearAllVideos'),
 
-            // Playlist
-            adDuration: document.getElementById('adDuration'),
-            adCount: document.getElementById('adCount'),
-            generatePlaylist: document.getElementById('generatePlaylist'),
+            // Dashboard
+            toggleDashboardMode: document.getElementById('toggleDashboardMode'),
+            configSections: document.getElementById('configSections'),
+            dashboardSection: document.getElementById('dashboardSection'),
+            connectionIndicator: document.getElementById('connectionIndicator'),
+            connectionStatus: document.getElementById('connectionStatus'),
+            libraryCount: document.getElementById('libraryCount'),
+            durationBtns: document.querySelectorAll('.duration-btn'),
+            customDuration: document.getElementById('customDuration'),
+            customDurationBtn: document.getElementById('customDurationBtn'),
+            selectedDuration: document.getElementById('selectedDuration'),
+            selectedDurationText: document.getElementById('selectedDurationText'),
+            selectedAdCount: document.getElementById('selectedAdCount'),
+            sendToVmix: document.getElementById('sendToVmix'),
             playlistPreview: document.getElementById('playlistPreview'),
             previewList: document.getElementById('previewList'),
 
@@ -88,9 +102,16 @@ const App = {
         // Video list
         this.elements.clearAllVideos.addEventListener('click', () => this.clearAllVideos());
 
-        // Playlist
-        this.elements.adDuration.addEventListener('input', () => this.updateAdCount());
-        this.elements.generatePlaylist.addEventListener('click', () => this.generateAndSendPlaylist());
+        // Dashboard
+        this.elements.toggleDashboardMode.addEventListener('click', () => this.toggleDashboardMode());
+        this.elements.durationBtns.forEach(btn => {
+            btn.addEventListener('click', () => this.selectDuration(parseInt(btn.dataset.duration)));
+        });
+        this.elements.customDurationBtn.addEventListener('click', () => this.selectCustomDuration());
+        this.elements.customDuration.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.selectCustomDuration();
+        });
+        this.elements.sendToVmix.addEventListener('click', () => this.generateAndSendPlaylist());
 
         // Status log
         this.elements.clearLog.addEventListener('click', () => this.clearLog());
@@ -124,6 +145,7 @@ const App = {
             this.elements.settingsSaved.classList.add('hidden');
         }, 2000);
 
+        this.updateConnectionStatus();
         this.log('Settings saved.');
     },
 
@@ -137,6 +159,126 @@ const App = {
             content.classList.add('hidden');
             btn.textContent = '[expand]';
         }
+    },
+
+    // Dashboard mode
+    loadDashboardMode() {
+        const saved = localStorage.getItem('vmixAdManager_dashboardMode');
+        if (saved === 'true') {
+            this.dashboardMode = true;
+            this.applyDashboardMode();
+        }
+    },
+
+    toggleDashboardMode() {
+        this.dashboardMode = !this.dashboardMode;
+        localStorage.setItem('vmixAdManager_dashboardMode', this.dashboardMode);
+        this.applyDashboardMode();
+    },
+
+    applyDashboardMode() {
+        if (this.dashboardMode) {
+            this.elements.configSections.classList.add('hidden');
+            this.elements.toggleDashboardMode.textContent = 'Show Config';
+            this.elements.toggleDashboardMode.classList.remove('bg-purple-600', 'hover:bg-purple-700');
+            this.elements.toggleDashboardMode.classList.add('bg-gray-600', 'hover:bg-gray-700');
+        } else {
+            this.elements.configSections.classList.remove('hidden');
+            this.elements.toggleDashboardMode.textContent = 'Dashboard Mode';
+            this.elements.toggleDashboardMode.classList.remove('bg-gray-600', 'hover:bg-gray-700');
+            this.elements.toggleDashboardMode.classList.add('bg-purple-600', 'hover:bg-purple-700');
+        }
+    },
+
+    updateConnectionStatus() {
+        const configured = this.settings.vmixIp && this.settings.vmixInput && this.settings.folderPath;
+        if (configured) {
+            this.elements.connectionIndicator.classList.remove('bg-gray-500', 'bg-red-500');
+            this.elements.connectionIndicator.classList.add('bg-green-500');
+            this.elements.connectionStatus.textContent = `${this.settings.vmixIp}:${this.settings.vmixPort} → ${this.settings.vmixInput}`;
+        } else {
+            this.elements.connectionIndicator.classList.remove('bg-green-500', 'bg-red-500');
+            this.elements.connectionIndicator.classList.add('bg-gray-500');
+            this.elements.connectionStatus.textContent = 'Not configured';
+        }
+    },
+
+    updateLibraryCount() {
+        this.elements.libraryCount.textContent = this.videos.length;
+    },
+
+    selectDuration(seconds) {
+        this.selectedDurationSeconds = seconds;
+
+        // Update button states
+        this.elements.durationBtns.forEach(btn => {
+            if (parseInt(btn.dataset.duration) === seconds) {
+                btn.classList.remove('bg-gray-700');
+                btn.classList.add('bg-blue-600');
+            } else {
+                btn.classList.remove('bg-blue-600');
+                btn.classList.add('bg-gray-700');
+            }
+        });
+
+        // Show selected duration
+        this.showSelectedDuration(seconds);
+
+        // Generate preview
+        this.generatePreview();
+    },
+
+    selectCustomDuration() {
+        const seconds = parseInt(this.elements.customDuration.value);
+        if (!seconds || seconds < 30) {
+            this.log('Error: Duration must be at least 30 seconds.', 'error');
+            return;
+        }
+
+        // Clear preset button states
+        this.elements.durationBtns.forEach(btn => {
+            btn.classList.remove('bg-blue-600');
+            btn.classList.add('bg-gray-700');
+        });
+
+        this.selectedDurationSeconds = seconds;
+        this.showSelectedDuration(seconds);
+        this.generatePreview();
+    },
+
+    showSelectedDuration(seconds) {
+        const adCount = Math.floor(seconds / 30);
+        let displayText;
+
+        if (seconds < 60) {
+            displayText = `${seconds} seconds`;
+        } else if (seconds < 120) {
+            displayText = '1 minute';
+        } else {
+            displayText = `${Math.floor(seconds / 60)} minutes`;
+        }
+
+        this.elements.selectedDurationText.textContent = displayText;
+        this.elements.selectedAdCount.textContent = `(${adCount} ad${adCount !== 1 ? 's' : ''})`;
+        this.elements.selectedDuration.classList.remove('hidden');
+    },
+
+    generatePreview() {
+        if (this.videos.length === 0) {
+            this.elements.playlistPreview.classList.add('hidden');
+            return;
+        }
+
+        const count = Math.floor(this.selectedDurationSeconds / 30);
+        const selected = this.generateWeightedSelection(count);
+
+        this.elements.playlistPreview.classList.remove('hidden');
+        this.elements.previewList.innerHTML = selected.map((video, index) => `
+            <div class="text-gray-300">
+                <span class="text-gray-500">${index + 1}.</span> ${this.escapeHtml(video.filename)}
+                <span class="text-xs ${this.getPriorityColor(video.priority)}">(${this.getPriorityLabel(video.priority)})</span>
+            </div>
+        `).join('');
     },
 
     // Normalize folder path (ensure trailing backslash)
@@ -218,6 +360,7 @@ const App = {
     saveVideos() {
         localStorage.setItem('vmixAdManager_videos', JSON.stringify(this.videos));
         this.updateVideoCount();
+        this.updateLibraryCount();
         this.renderVideoList();
     },
 
@@ -362,12 +505,6 @@ const App = {
     },
 
     // Playlist generation
-    updateAdCount() {
-        const duration = parseInt(this.elements.adDuration.value) || 0;
-        const count = Math.floor(duration / 30);
-        this.elements.adCount.textContent = count;
-    },
-
     generateWeightedSelection(count) {
         if (this.videos.length === 0) {
             return [];
@@ -411,11 +548,11 @@ const App = {
             return;
         }
 
-        const duration = parseInt(this.elements.adDuration.value) || 0;
+        const duration = this.selectedDurationSeconds;
         const count = Math.floor(duration / 30);
 
         if (count === 0) {
-            this.log('Error: Duration must be at least 30 seconds.', 'error');
+            this.log('Error: Please select a duration first.', 'error');
             return;
         }
 
