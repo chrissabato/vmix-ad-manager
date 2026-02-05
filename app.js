@@ -630,7 +630,7 @@ const App = {
                             ${isSelected ? '<span class="mr-1">→</span>' : `<span class="text-gray-500 mr-1">${index + 1}.</span>`}
                             ${this.escapeHtml(displayName)}
                         </span>
-                        ${showEndHere ? `<button onclick="App.endPlaylistHere(${index + 1}, ${totalItems})" class="text-yellow-400 hover:text-yellow-300 text-xs ml-2" title="End playlist here">↓</button>` : ''}
+                        ${showEndHere ? `<button onclick="App.endPlaylistHere(${index + 1}, ${totalItems})" class="text-yellow-400 hover:text-yellow-300 text-xs ml-2" title="End playlist here">↧</button>` : ''}
                     </div>
                 `;
             });
