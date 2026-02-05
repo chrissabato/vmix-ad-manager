@@ -43,6 +43,7 @@ const App = {
             // Video adding
             fileBrowser: document.getElementById('fileBrowser'),
             fileBrowserPriority: document.getElementById('fileBrowserPriority'),
+            addSelectedFiles: document.getElementById('addSelectedFiles'),
             filePreview: document.getElementById('filePreview'),
             videoFilename: document.getElementById('videoFilename'),
             videoPriority: document.getElementById('videoPriority'),
@@ -75,7 +76,8 @@ const App = {
         this.elements.toggleSettings.addEventListener('click', () => this.toggleSettings());
 
         // Video adding
-        this.elements.fileBrowser.addEventListener('change', (e) => this.handleFileBrowser(e));
+        this.elements.fileBrowser.addEventListener('change', (e) => this.previewSelectedFiles(e));
+        this.elements.addSelectedFiles.addEventListener('click', () => this.addSelectedFiles());
         this.elements.addVideo.addEventListener('click', () => this.addVideo());
         this.elements.videoFilename.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.addVideo();
@@ -147,15 +149,36 @@ const App = {
     },
 
     // Video management
-    handleFileBrowser(event) {
+    pendingFiles: [],
+
+    previewSelectedFiles(event) {
         const files = event.target.files;
-        if (!files || files.length === 0) return;
+        if (!files || files.length === 0) {
+            this.pendingFiles = [];
+            this.elements.addSelectedFiles.disabled = true;
+            this.elements.filePreview.classList.add('hidden');
+            return;
+        }
+
+        this.pendingFiles = Array.from(files);
+
+        // Show preview of selected files
+        const fileNames = this.pendingFiles.map(f => f.name).join(', ');
+        this.elements.filePreview.classList.remove('hidden');
+        this.elements.filePreview.innerHTML = `<strong>${this.pendingFiles.length} file(s) selected:</strong> ${this.escapeHtml(fileNames)}`;
+
+        // Enable the add button
+        this.elements.addSelectedFiles.disabled = false;
+    },
+
+    addSelectedFiles() {
+        if (this.pendingFiles.length === 0) return;
 
         const priority = parseInt(this.elements.fileBrowserPriority.value);
         let added = 0;
         let skipped = 0;
 
-        for (const file of files) {
+        for (const file of this.pendingFiles) {
             const filename = file.name;
 
             // Check for duplicates
@@ -174,13 +197,14 @@ const App = {
 
         this.saveVideos();
 
-        // Show preview
-        this.elements.filePreview.classList.remove('hidden');
+        // Update preview to show result
         this.elements.filePreview.innerHTML = `<span class="text-green-400">${added} file(s) added</span>` +
             (skipped > 0 ? `, <span class="text-yellow-400">${skipped} skipped (duplicates)</span>` : '');
 
-        // Clear the file input so the same files can be selected again if needed
-        event.target.value = '';
+        // Clear state
+        this.pendingFiles = [];
+        this.elements.fileBrowser.value = '';
+        this.elements.addSelectedFiles.disabled = true;
 
         this.log(`File browser: ${added} added, ${skipped} skipped (Priority: ${this.getPriorityLabel(priority)})`);
     },
