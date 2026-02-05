@@ -22,139 +22,141 @@
         </header>
 
         <!-- Config Sections (hideable) -->
-        <div id="configSections">
-
-        <!-- Settings Panel -->
-        <section class="bg-gray-800 rounded-lg p-6 mb-6">
-            <h2 class="text-xl font-semibold mb-4 flex items-center">
-                <span class="mr-2">Settings</span>
-                <button id="toggleSettings" class="text-sm text-gray-400 hover:text-white">
-                    [collapse]
-                </button>
-            </h2>
-            <div id="settingsContent" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-1">vMix IP Address</label>
-                    <input type="text" id="vmixIp" placeholder="192.168.1.100"
-                        class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-1">vMix Port</label>
-                    <input type="text" id="vmixPort" placeholder="8088"
-                        class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-1">vMix Input Name</label>
-                    <input type="text" id="vmixInput" placeholder="Playlist 1"
-                        class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-1">Video Folder Path</label>
-                    <input type="text" id="folderPath" placeholder="C:\Videos\Ads\"
-                        class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500">
-                </div>
-            </div>
-            <div class="mt-4 flex items-center">
-                <input type="checkbox" id="useProxy" checked
-                    class="w-4 h-4 bg-gray-700 border-gray-600 rounded focus:ring-blue-500">
-                <label for="useProxy" class="ml-2 text-sm text-gray-300">Use PHP proxy for API calls (recommended for CORS compatibility)</label>
-            </div>
-            <div class="mt-4">
-                <button id="saveSettings" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium transition-colors">
-                    Save Settings
-                </button>
-                <span id="settingsSaved" class="ml-3 text-green-400 hidden">Settings saved!</span>
-            </div>
-        </section>
-
-        <!-- Add Videos Panel -->
-        <section class="bg-gray-800 rounded-lg p-6 mb-6">
-            <h2 class="text-xl font-semibold mb-4">Add Videos</h2>
-
-            <!-- File Browser -->
-            <div class="mb-6 p-4 bg-gray-700 rounded-lg border-2 border-dashed border-gray-500">
-                <label class="block text-sm font-medium text-gray-300 mb-2">Browse for Videos</label>
-                <p class="text-gray-400 text-sm mb-3">Select .mp4 files from your computer to add their filenames (files are not uploaded)</p>
-                <div class="flex flex-col md:flex-row gap-4 items-start md:items-end">
-                    <div class="flex-1">
-                        <input type="file" id="fileBrowser" multiple accept=".mp4,video/mp4"
-                            class="block w-full text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer cursor-pointer">
+        <div id="configSections" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- Left Column: Settings & Add Videos -->
+            <div class="space-y-6">
+                <!-- Settings Panel -->
+                <section class="bg-gray-800 rounded-lg p-6">
+                    <h2 class="text-xl font-semibold mb-4 flex items-center">
+                        <span class="mr-2">Settings</span>
+                        <button id="toggleSettings" class="text-sm text-gray-400 hover:text-white">
+                            [collapse]
+                        </button>
+                    </h2>
+                    <div id="settingsContent" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">vMix IP Address</label>
+                            <input type="text" id="vmixIp" placeholder="192.168.1.100"
+                                class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">vMix Port</label>
+                            <input type="text" id="vmixPort" placeholder="8088"
+                                class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">vMix Input Name</label>
+                            <input type="text" id="vmixInput" placeholder="Playlist 1"
+                                class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Video Folder Path</label>
+                            <input type="text" id="folderPath" placeholder="C:\Videos\Ads\"
+                                class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500">
+                        </div>
                     </div>
-                    <div class="w-full md:w-48">
-                        <label class="block text-sm font-medium text-gray-300 mb-1">Priority for selected</label>
-                        <select id="fileBrowserPriority" class="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500">
-                            <option value="1">Low</option>
-                            <option value="2" selected>Medium</option>
-                            <option value="3">High</option>
-                        </select>
+                    <div class="mt-4 flex items-center">
+                        <input type="checkbox" id="useProxy" checked
+                            class="w-4 h-4 bg-gray-700 border-gray-600 rounded focus:ring-blue-500">
+                        <label for="useProxy" class="ml-2 text-sm text-gray-300">Use PHP proxy (CORS)</label>
                     </div>
-                    <div>
-                        <button id="addSelectedFiles" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded font-medium transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>
-                            Add Selected Files
+                    <div class="mt-4">
+                        <button id="saveSettings" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium transition-colors">
+                            Save Settings
+                        </button>
+                        <span id="settingsSaved" class="ml-3 text-green-400 hidden">Settings saved!</span>
+                    </div>
+                </section>
+
+                <!-- Add Videos Panel -->
+                <section class="bg-gray-800 rounded-lg p-6">
+                    <h2 class="text-xl font-semibold mb-4">Add Videos</h2>
+
+                    <!-- File Browser -->
+                    <div class="mb-4 p-4 bg-gray-700 rounded-lg border-2 border-dashed border-gray-500">
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Browse for Videos</label>
+                        <p class="text-gray-400 text-xs mb-2">Select .mp4 files to add their filenames</p>
+                        <div class="space-y-3">
+                            <input type="file" id="fileBrowser" multiple accept=".mp4,video/mp4"
+                                class="block w-full text-gray-300 text-sm file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer cursor-pointer">
+                            <div class="flex gap-2 items-end">
+                                <div class="flex-1">
+                                    <label class="block text-xs font-medium text-gray-400 mb-1">Priority</label>
+                                    <select id="fileBrowserPriority" class="w-full bg-gray-600 border border-gray-500 rounded px-2 py-1 text-white text-sm focus:outline-none focus:border-blue-500">
+                                        <option value="1">Low</option>
+                                        <option value="2" selected>Medium</option>
+                                        <option value="3">High</option>
+                                    </select>
+                                </div>
+                                <button id="addSelectedFiles" class="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded font-medium transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed text-sm" disabled>
+                                    Add Files
+                                </button>
+                            </div>
+                        </div>
+                        <div id="filePreview" class="mt-2 text-xs text-gray-400 hidden"></div>
+                    </div>
+
+                    <!-- Manual Entry -->
+                    <div class="flex gap-2 items-end mb-3">
+                        <div class="flex-1">
+                            <label class="block text-xs font-medium text-gray-400 mb-1">Filename (manual)</label>
+                            <input type="text" id="videoFilename" placeholder="ad_video_01.mp4"
+                                class="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div class="w-24">
+                            <label class="block text-xs font-medium text-gray-400 mb-1">Priority</label>
+                            <select id="videoPriority" class="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm focus:outline-none focus:border-blue-500">
+                                <option value="1">Low</option>
+                                <option value="2" selected>Medium</option>
+                                <option value="3">High</option>
+                            </select>
+                        </div>
+                        <button id="addVideo" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded font-medium transition-colors text-sm">
+                            Add
                         </button>
                     </div>
-                </div>
-                <div id="filePreview" class="mt-3 text-sm text-gray-400 hidden"></div>
+
+                    <!-- Bulk Add -->
+                    <div>
+                        <label class="block text-xs font-medium text-gray-400 mb-1">Bulk Add (one per line)</label>
+                        <textarea id="bulkVideos" rows="2" placeholder="video1.mp4&#10;video2.mp4"
+                            class="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500"></textarea>
+                        <button id="bulkAddVideos" class="mt-2 bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded font-medium transition-colors text-sm">
+                            Bulk Add (Medium)
+                        </button>
+                    </div>
+                </section>
             </div>
 
-            <!-- Manual Entry -->
-            <div class="flex flex-col md:flex-row gap-4">
-                <div class="flex-1">
-                    <label class="block text-sm font-medium text-gray-300 mb-1">Video Filename (manual)</label>
-                    <input type="text" id="videoFilename" placeholder="ad_video_01.mp4"
-                        class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500">
-                </div>
-                <div class="w-full md:w-48">
-                    <label class="block text-sm font-medium text-gray-300 mb-1">Priority</label>
-                    <select id="videoPriority" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500">
-                        <option value="1">Low</option>
-                        <option value="2" selected>Medium</option>
-                        <option value="3">High</option>
-                    </select>
-                </div>
-                <div class="flex items-end">
-                    <button id="addVideo" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded font-medium transition-colors">
-                        Add Video
-                    </button>
-                </div>
-            </div>
-            <div class="mt-4">
-                <label class="block text-sm font-medium text-gray-300 mb-1">Bulk Add (one filename per line)</label>
-                <textarea id="bulkVideos" rows="3" placeholder="video1.mp4&#10;video2.mp4&#10;video3.mp4"
-                    class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"></textarea>
-                <button id="bulkAddVideos" class="mt-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-medium transition-colors">
-                    Bulk Add (Medium Priority)
-                </button>
-            </div>
-        </section>
+            <!-- Right Column: Video Library & Status Log -->
+            <div class="space-y-6">
+                <!-- Video Library -->
+                <section class="bg-gray-800 rounded-lg p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold">Video Library</h2>
+                        <div class="flex gap-2">
+                            <span id="videoCount" class="text-gray-400">0 videos</span>
+                            <button id="clearAllVideos" class="text-red-400 hover:text-red-300 text-sm ml-4">
+                                Clear All
+                            </button>
+                        </div>
+                    </div>
+                    <div id="videoList" class="space-y-2 max-h-64 overflow-y-auto">
+                        <p class="text-gray-500 italic">No videos added yet.</p>
+                    </div>
+                </section>
 
-        <!-- Video Library -->
-        <section class="bg-gray-800 rounded-lg p-6 mb-6">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold">Video Library</h2>
-                <div class="flex gap-2">
-                    <span id="videoCount" class="text-gray-400">0 videos</span>
-                    <button id="clearAllVideos" class="text-red-400 hover:text-red-300 text-sm ml-4">
-                        Clear All
-                    </button>
-                </div>
+                <!-- Status Log -->
+                <section class="bg-gray-800 rounded-lg p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold">Status Log</h2>
+                        <button id="clearLog" class="text-gray-400 hover:text-white text-sm">Clear</button>
+                    </div>
+                    <div id="statusLog" class="bg-gray-900 rounded p-4 h-40 overflow-y-auto font-mono text-sm">
+                        <p class="text-gray-500">Ready.</p>
+                    </div>
+                </section>
             </div>
-            <div id="videoList" class="space-y-2 max-h-96 overflow-y-auto">
-                <p class="text-gray-500 italic">No videos added yet.</p>
-            </div>
-        </section>
-
-        <!-- Status Log -->
-        <section class="bg-gray-800 rounded-lg p-6">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold">Status Log</h2>
-                <button id="clearLog" class="text-gray-400 hover:text-white text-sm">Clear</button>
-            </div>
-            <div id="statusLog" class="bg-gray-900 rounded p-4 h-48 overflow-y-auto font-mono text-sm">
-                <p class="text-gray-500">Ready.</p>
-            </div>
-        </section>
-
         </div><!-- end configSections -->
 
         <!-- Playout Dashboard -->
