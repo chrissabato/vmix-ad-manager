@@ -579,21 +579,11 @@ const App = {
             const listElement = playlistInput.querySelector('list');
             const items = playlistInput.querySelectorAll('list item');
 
-            // Try to get the selected index from various possible attributes
-            const selectedIndex = parseInt(playlistInput.getAttribute('selectedIndex')) ||
-                                 parseInt(playlistInput.getAttribute('index')) ||
-                                 parseInt(playlistInput.getAttribute('listIndex')) || -1;
+            // Get the selected index from the input element (1-based in vMix)
+            const selectedIndexAttr = playlistInput.getAttribute('selectedIndex');
+            const selectedIndex = selectedIndexAttr ? parseInt(selectedIndexAttr) : -1;
 
-            // Also get the current filename from title as fallback
-            const inputTitle = playlistInput.getAttribute('title') || '';
-            const currentFilename = inputTitle.includes(' - ') ? inputTitle.split(' - ').slice(1).join(' - ') : '';
-
-            if (!silent) {
-                this.log(`Selected index: ${selectedIndex}, Current file: ${currentFilename}`);
-                // Log all input attributes to find the right one
-                const allAttrs = Array.from(playlistInput.attributes).map(a => `${a.name}=${a.value}`).join(', ');
-                this.log(`All input attrs: ${allAttrs}`);
-            }
+            if (!silent) this.log(`Selected index: ${selectedIndex}`);
 
             if (items.length === 0) {
                 this.elements.vmixPlaylistContent.innerHTML = '<p class="text-gray-500 italic text-center text-sm">Playlist is empty</p>';
@@ -601,22 +591,15 @@ const App = {
             }
 
             let html = '';
-            let foundCurrent = false;
             items.forEach((item, index) => {
                 const fullPath = item.textContent || '';
                 const filename = fullPath.split('\\').pop().split('/').pop();
                 const displayName = filename.replace(/\.mp4$/i, '');
 
-                // Prefer matching by index if available (1-based in vMix)
-                // Fall back to filename match (only first occurrence)
-                let isSelected = false;
-                if (selectedIndex >= 0) {
-                    // vMix uses 1-based index
-                    isSelected = (index + 1) === selectedIndex || index === selectedIndex;
-                } else if (!foundCurrent && filename.toLowerCase() === currentFilename.toLowerCase()) {
-                    isSelected = true;
-                    foundCurrent = true;
-                }
+                // Check for selected="true" attribute on item, or match by selectedIndex (1-based)
+                const itemSelected = item.getAttribute('selected') === 'true';
+                const indexMatch = selectedIndex > 0 && (index + 1) === selectedIndex;
+                const isSelected = itemSelected || indexMatch;
 
                 html += `
                     <div class="text-sm py-1 px-2 rounded mb-1 ${isSelected ? 'bg-green-900 text-green-300' : 'bg-gray-800 text-gray-300'}">
