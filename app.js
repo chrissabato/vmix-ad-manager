@@ -591,12 +591,15 @@ const App = {
             }
 
             let html = '';
+            let foundCurrent = false;
             items.forEach((item, index) => {
                 const fullPath = item.textContent || '';
                 const filename = fullPath.split('\\').pop().split('/').pop();
                 const displayName = filename.replace(/\.mp4$/i, '');
                 // Match by filename with the current playing file from input title
-                const isSelected = filename.toLowerCase() === currentFilename.toLowerCase();
+                // Only mark the first match as current (in case of duplicates)
+                const isSelected = !foundCurrent && filename.toLowerCase() === currentFilename.toLowerCase();
+                if (isSelected) foundCurrent = true;
 
                 html += `
                     <div class="text-sm py-1 px-2 rounded mb-1 ${isSelected ? 'bg-green-900 text-green-300' : 'bg-gray-800 text-gray-300'}">
