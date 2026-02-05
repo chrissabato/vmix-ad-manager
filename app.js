@@ -36,6 +36,9 @@ const App = {
         this.renderVideoList();
         this.renderAvailableAds();
         this.log('Application initialized.');
+
+        // Enable auto-refresh by default
+        this.toggleAutoRefresh();
     },
 
     // Cache DOM elements for performance
