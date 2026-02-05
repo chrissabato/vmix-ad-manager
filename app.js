@@ -320,7 +320,7 @@ const App = {
             <div class="flex items-center justify-between text-sm py-1 px-2 bg-gray-800 rounded mb-1 hover:bg-gray-700">
                 <span class="text-gray-300 truncate flex-1 mr-2">${this.escapeHtml(video.filename.replace('.mp4', ''))}</span>
                 <button onclick="App.addToPreview(${video.id})"
-                    class="text-green-400 hover:text-green-300 text-xs font-medium px-2">+Add</button>
+                    class="text-green-400 hover:text-green-300 font-bold px-2">+</button>
             </div>
         `).join('');
     },
