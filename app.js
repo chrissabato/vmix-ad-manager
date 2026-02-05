@@ -505,6 +505,22 @@ const App = {
     },
 
     // Playlist generation
+    getAdBaseName(filename) {
+        // Remove extension and version suffix (-1, -2, etc.) to get base name
+        // Examples: "Ad-1.mp4" -> "Ad", "Commercial-2.mp4" -> "Commercial", "Promo.mp4" -> "Promo"
+        const withoutExt = filename.replace(/\.mp4$/i, '');
+        // Remove trailing -1, -2, _1, _2, etc.
+        return withoutExt.replace(/[-_]\d+$/, '').toLowerCase();
+    },
+
+    isSameAdGroup(video1, video2) {
+        if (!video1 || !video2) return false;
+        // Same exact file
+        if (video1.filename.toLowerCase() === video2.filename.toLowerCase()) return true;
+        // Same ad group (e.g., Ad-1 and Ad-2)
+        return this.getAdBaseName(video1.filename) === this.getAdBaseName(video2.filename);
+    },
+
     generateWeightedSelection(count) {
         if (this.videos.length === 0) {
             return [];
@@ -519,11 +535,30 @@ const App = {
             }
         });
 
-        // Select random videos from weighted pool
+        // Get unique ad groups to check if we can avoid back-to-back
+        const uniqueGroups = new Set(this.videos.map(v => this.getAdBaseName(v.filename)));
+        const canAvoidBackToBack = uniqueGroups.size > 1;
+
+        // Select random videos from weighted pool, avoiding back-to-back same ads
         const selected = [];
+        const maxAttempts = 50; // Prevent infinite loop
+
         for (let i = 0; i < count; i++) {
-            const randomIndex = Math.floor(Math.random() * pool.length);
-            selected.push(pool[randomIndex]);
+            let attempts = 0;
+            let candidate;
+
+            do {
+                const randomIndex = Math.floor(Math.random() * pool.length);
+                candidate = pool[randomIndex];
+                attempts++;
+            } while (
+                canAvoidBackToBack &&
+                attempts < maxAttempts &&
+                selected.length > 0 &&
+                this.isSameAdGroup(candidate, selected[selected.length - 1])
+            );
+
+            selected.push(candidate);
         }
 
         return selected;
