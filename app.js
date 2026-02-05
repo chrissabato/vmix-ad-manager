@@ -10,6 +10,8 @@ const App = {
     autoRefreshEnabled: false,
     previewPlaylist: [], // manually built playlist for preview
     previewIdCounter: 0, // counter for unique preview IDs
+    draggedItem: null, // currently dragged element
+    draggedIndex: null, // index of dragged item
     settings: {
         vmixIp: '',
         vmixPort: '8088',
@@ -356,14 +358,21 @@ const App = {
         }
 
         this.elements.previewList.innerHTML = this.previewPlaylist.map((video, index) => `
-            <div class="flex items-center justify-between text-sm py-1 px-2 bg-gray-800 rounded mb-1">
-                <span class="text-gray-300">
+            <div class="preview-item flex items-center justify-between text-sm py-1 px-2 bg-gray-800 rounded mb-1 cursor-move"
+                 draggable="true"
+                 data-preview-id="${video.previewId}"
+                 data-index="${index}">
+                <span class="text-gray-300 flex items-center">
+                    <span class="text-gray-600 mr-2">☰</span>
                     <span class="text-gray-500">${index + 1}.</span> ${this.escapeHtml(video.filename.replace('.mp4', ''))}
                 </span>
-                <button onclick="App.removeFromPreview(${video.previewId})"
+                <button onclick="App.removeFromPreview(${video.previewId}); event.stopPropagation();"
                     class="text-red-400 hover:text-red-300 text-xs">✕</button>
             </div>
         `).join('');
+
+        // Add drag and drop event listeners
+        this.initPreviewDragDrop();
 
         // Update summary
         const count = this.previewPlaylist.length;
@@ -371,6 +380,69 @@ const App = {
         this.elements.previewCount.textContent = `${count} ad${count !== 1 ? 's' : ''}`;
         this.elements.previewDuration.textContent = `${duration} sec`;
         this.elements.previewSummary.classList.remove('hidden');
+    },
+
+    initPreviewDragDrop() {
+        const items = this.elements.previewList.querySelectorAll('.preview-item');
+
+        items.forEach(item => {
+            item.addEventListener('dragstart', (e) => this.handleDragStart(e));
+            item.addEventListener('dragover', (e) => this.handleDragOver(e));
+            item.addEventListener('drop', (e) => this.handleDrop(e));
+            item.addEventListener('dragend', (e) => this.handleDragEnd(e));
+            item.addEventListener('dragenter', (e) => this.handleDragEnter(e));
+            item.addEventListener('dragleave', (e) => this.handleDragLeave(e));
+        });
+    },
+
+    handleDragStart(e) {
+        this.draggedItem = e.target;
+        this.draggedIndex = parseInt(e.target.dataset.index);
+        e.target.style.opacity = '0.5';
+        e.dataTransfer.effectAllowed = 'move';
+    },
+
+    handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    },
+
+    handleDragEnter(e) {
+        e.preventDefault();
+        const item = e.target.closest('.preview-item');
+        if (item && item !== this.draggedItem) {
+            item.classList.add('bg-blue-900');
+        }
+    },
+
+    handleDragLeave(e) {
+        const item = e.target.closest('.preview-item');
+        if (item) {
+            item.classList.remove('bg-blue-900');
+        }
+    },
+
+    handleDrop(e) {
+        e.preventDefault();
+        const dropTarget = e.target.closest('.preview-item');
+        if (!dropTarget || dropTarget === this.draggedItem) return;
+
+        const dropIndex = parseInt(dropTarget.dataset.index);
+
+        // Reorder the array
+        const [movedItem] = this.previewPlaylist.splice(this.draggedIndex, 1);
+        this.previewPlaylist.splice(dropIndex, 0, movedItem);
+
+        // Re-render
+        this.renderPreviewPlaylist();
+    },
+
+    handleDragEnd(e) {
+        e.target.style.opacity = '1';
+        const items = this.elements.previewList.querySelectorAll('.preview-item');
+        items.forEach(item => item.classList.remove('bg-blue-900'));
+        this.draggedItem = null;
+        this.draggedIndex = null;
     },
 
     async sendPreviewToVmix() {
