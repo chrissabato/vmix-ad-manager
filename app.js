@@ -526,7 +526,7 @@ const App = {
             return [];
         }
 
-        // Build weighted pool
+        // Build weighted pool with video references
         const pool = [];
         this.videos.forEach(video => {
             // Priority 1 = 1x, Priority 2 = 2x, Priority 3 = 3x
@@ -541,22 +541,29 @@ const App = {
 
         // Select random videos from weighted pool, avoiding back-to-back same ads
         const selected = [];
-        const maxAttempts = 50; // Prevent infinite loop
+        const maxAttempts = 100;
 
         for (let i = 0; i < count; i++) {
-            let attempts = 0;
-            let candidate;
+            let candidate = null;
+            let lastSelected = selected.length > 0 ? selected[selected.length - 1] : null;
 
-            do {
+            if (!canAvoidBackToBack || !lastSelected) {
+                // Just pick randomly if we can't avoid back-to-back or it's the first selection
                 const randomIndex = Math.floor(Math.random() * pool.length);
                 candidate = pool[randomIndex];
-                attempts++;
-            } while (
-                canAvoidBackToBack &&
-                attempts < maxAttempts &&
-                selected.length > 0 &&
-                this.isSameAdGroup(candidate, selected[selected.length - 1])
-            );
+            } else {
+                // Filter pool to exclude same ad group as last selected
+                const filteredPool = pool.filter(v => !this.isSameAdGroup(v, lastSelected));
+
+                if (filteredPool.length > 0) {
+                    const randomIndex = Math.floor(Math.random() * filteredPool.length);
+                    candidate = filteredPool[randomIndex];
+                } else {
+                    // Fallback: no valid options, just pick randomly
+                    const randomIndex = Math.floor(Math.random() * pool.length);
+                    candidate = pool[randomIndex];
+                }
+            }
 
             selected.push(candidate);
         }
