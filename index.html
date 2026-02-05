@@ -163,8 +163,8 @@
                 </div>
             </div>
 
-            <!-- Three Column Layout -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Four Column Layout -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <!-- Column 1: Duration Selection -->
                 <div class="bg-gray-900 rounded-lg p-4">
                     <h3 class="text-lg font-medium mb-4 text-center">Select Duration</h3>
@@ -214,13 +214,29 @@
                     </div>
                 </div>
 
-                <!-- Column 2: Playlist Preview -->
+                <!-- Column 2: Available Ads -->
                 <div class="bg-gray-900 rounded-lg p-4">
-                    <h3 class="text-lg font-medium mb-4 text-center">Playlist Preview</h3>
+                    <h3 class="text-lg font-medium mb-4 text-center">Available Ads</h3>
+                    <div id="availableAdsList" class="space-y-1 max-h-80 overflow-y-auto">
+                        <p class="text-gray-500 italic text-center text-sm">No ads in library</p>
+                    </div>
+                </div>
+
+                <!-- Column 3: Playlist Preview -->
+                <div class="bg-gray-900 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-medium">Playlist Preview</h3>
+                        <button id="clearPreview" class="text-red-400 hover:text-red-300 text-xs">Clear</button>
+                    </div>
                     <div id="playlistPreview">
                         <div id="previewList" class="space-y-1 max-h-80 overflow-y-auto">
-                            <p class="text-gray-500 italic text-center text-sm">Select a duration to preview</p>
+                            <p class="text-gray-500 italic text-center text-sm">Select duration or add ads manually</p>
                         </div>
+                    </div>
+                    <div id="previewSummary" class="mt-3 pt-3 border-t border-gray-700 text-center hidden">
+                        <span id="previewCount" class="text-gray-400 text-sm">0 ads</span>
+                        <span class="text-gray-600 mx-2">|</span>
+                        <span id="previewDuration" class="text-gray-400 text-sm">0 sec</span>
                     </div>
                 </div>
 

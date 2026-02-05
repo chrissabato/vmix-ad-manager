@@ -8,6 +8,7 @@ const App = {
     dashboardMode: false,
     autoRefreshInterval: null,
     autoRefreshEnabled: false,
+    previewPlaylist: [], // manually built playlist for preview
     settings: {
         vmixIp: '',
         vmixPort: '8088',
@@ -30,6 +31,7 @@ const App = {
         this.updateConnectionStatus();
         this.updateLibraryCount();
         this.renderVideoList();
+        this.renderAvailableAds();
         this.log('Application initialized.');
     },
 
@@ -79,6 +81,11 @@ const App = {
             sendToVmix: document.getElementById('sendToVmix'),
             playlistPreview: document.getElementById('playlistPreview'),
             previewList: document.getElementById('previewList'),
+            clearPreview: document.getElementById('clearPreview'),
+            previewSummary: document.getElementById('previewSummary'),
+            previewCount: document.getElementById('previewCount'),
+            previewDuration: document.getElementById('previewDuration'),
+            availableAdsList: document.getElementById('availableAdsList'),
             refreshVmixPlaylist: document.getElementById('refreshVmixPlaylist'),
             autoRefreshToggle: document.getElementById('autoRefreshToggle'),
             clearVmixPlaylist: document.getElementById('clearVmixPlaylist'),
@@ -117,7 +124,8 @@ const App = {
         this.elements.customDuration.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.selectCustomDuration();
         });
-        this.elements.sendToVmix.addEventListener('click', () => this.generateAndSendPlaylist());
+        this.elements.sendToVmix.addEventListener('click', () => this.sendPreviewToVmix());
+        this.elements.clearPreview.addEventListener('click', () => this.clearPreviewPlaylist());
         this.elements.refreshVmixPlaylist.addEventListener('click', () => this.refreshVmixPlaylist());
         this.elements.autoRefreshToggle.addEventListener('click', () => this.toggleAutoRefresh());
         this.elements.clearVmixPlaylist.addEventListener('click', () => this.clearVmixPlaylist());
@@ -274,23 +282,115 @@ const App = {
 
     generatePreview() {
         if (this.videos.length === 0) {
-            this.elements.previewList.innerHTML = '<p class="text-gray-500 italic text-center text-sm">No videos in library</p>';
+            this.previewPlaylist = [];
+            this.renderPreviewPlaylist();
             return;
         }
 
         if (this.selectedDurationSeconds === 0) {
-            this.elements.previewList.innerHTML = '<p class="text-gray-500 italic text-center text-sm">Select a duration to preview</p>';
             return;
         }
 
         const count = Math.floor(this.selectedDurationSeconds / 30);
-        const selected = this.generateWeightedSelection(count);
+        this.previewPlaylist = this.generateWeightedSelection(count);
+        this.renderPreviewPlaylist();
+    },
 
-        this.elements.previewList.innerHTML = selected.map((video, index) => `
-            <div class="text-gray-300 text-sm py-1 px-2 bg-gray-800 rounded mb-1">
-                <span class="text-gray-500">${index + 1}.</span> ${this.escapeHtml(video.filename)}
+    renderAvailableAds() {
+        if (this.videos.length === 0) {
+            this.elements.availableAdsList.innerHTML = '<p class="text-gray-500 italic text-center text-sm">No ads in library</p>';
+            return;
+        }
+
+        // Sort by priority (high to low), then alphabetically
+        const sorted = [...this.videos].sort((a, b) => {
+            if (b.priority !== a.priority) return b.priority - a.priority;
+            return a.filename.localeCompare(b.filename);
+        });
+
+        this.elements.availableAdsList.innerHTML = sorted.map(video => `
+            <div class="flex items-center justify-between text-sm py-1 px-2 bg-gray-800 rounded mb-1 hover:bg-gray-700">
+                <span class="text-gray-300 truncate flex-1 mr-2">${this.escapeHtml(video.filename.replace('.mp4', ''))}</span>
+                <button onclick="App.addToPreview(${video.id})"
+                    class="text-green-400 hover:text-green-300 text-xs font-medium px-2">+Add</button>
             </div>
         `).join('');
+    },
+
+    addToPreview(videoId) {
+        const video = this.videos.find(v => v.id === videoId);
+        if (video) {
+            this.previewPlaylist.push({...video, previewId: Date.now() + Math.random()});
+            this.renderPreviewPlaylist();
+        }
+    },
+
+    removeFromPreview(previewId) {
+        this.previewPlaylist = this.previewPlaylist.filter(v => v.previewId !== previewId);
+        this.renderPreviewPlaylist();
+    },
+
+    clearPreviewPlaylist() {
+        this.previewPlaylist = [];
+        this.selectedDurationSeconds = 0;
+        this.elements.durationBtns.forEach(btn => {
+            btn.classList.remove('bg-blue-600');
+            btn.classList.add('bg-gray-700');
+        });
+        this.elements.selectedDuration.classList.add('hidden');
+        this.renderPreviewPlaylist();
+    },
+
+    renderPreviewPlaylist() {
+        if (this.previewPlaylist.length === 0) {
+            this.elements.previewList.innerHTML = '<p class="text-gray-500 italic text-center text-sm">Select duration or add ads manually</p>';
+            this.elements.previewSummary.classList.add('hidden');
+            return;
+        }
+
+        this.elements.previewList.innerHTML = this.previewPlaylist.map((video, index) => `
+            <div class="flex items-center justify-between text-sm py-1 px-2 bg-gray-800 rounded mb-1">
+                <span class="text-gray-300">
+                    <span class="text-gray-500">${index + 1}.</span> ${this.escapeHtml(video.filename.replace('.mp4', ''))}
+                </span>
+                <button onclick="App.removeFromPreview(${video.previewId})"
+                    class="text-red-400 hover:text-red-300 text-xs">✕</button>
+            </div>
+        `).join('');
+
+        // Update summary
+        const count = this.previewPlaylist.length;
+        const duration = count * 30;
+        this.elements.previewCount.textContent = `${count} ad${count !== 1 ? 's' : ''}`;
+        this.elements.previewDuration.textContent = `${duration} sec`;
+        this.elements.previewSummary.classList.remove('hidden');
+    },
+
+    async sendPreviewToVmix() {
+        if (this.previewPlaylist.length === 0) {
+            this.log('Error: No ads in preview playlist.', 'error');
+            return;
+        }
+
+        // Validate settings
+        if (!this.settings.vmixIp) {
+            this.log('Error: vMix IP address not configured.', 'error');
+            return;
+        }
+        if (!this.settings.vmixInput) {
+            this.log('Error: vMix input name not configured.', 'error');
+            return;
+        }
+        if (!this.settings.folderPath) {
+            this.log('Error: Video folder path not configured.', 'error');
+            return;
+        }
+
+        this.log(`Sending ${this.previewPlaylist.length} ads to vMix...`);
+
+        // Clear existing playlist first, then send new videos
+        await this.clearVmixPlaylistSilent();
+        await this.sendToVmix(this.previewPlaylist);
     },
 
     toggleAutoRefresh() {
@@ -572,6 +672,7 @@ const App = {
         this.updateVideoCount();
         this.updateLibraryCount();
         this.renderVideoList();
+        this.renderAvailableAds();
     },
 
     addVideo() {
@@ -779,52 +880,6 @@ const App = {
         }
 
         return selected;
-    },
-
-    async generateAndSendPlaylist() {
-        // Validate settings
-        if (!this.settings.vmixIp) {
-            this.log('Error: vMix IP address not configured.', 'error');
-            return;
-        }
-        if (!this.settings.vmixInput) {
-            this.log('Error: vMix input name not configured.', 'error');
-            return;
-        }
-        if (!this.settings.folderPath) {
-            this.log('Error: Video folder path not configured.', 'error');
-            return;
-        }
-        if (this.videos.length === 0) {
-            this.log('Error: No videos in library.', 'error');
-            return;
-        }
-
-        const duration = this.selectedDurationSeconds;
-        const count = Math.floor(duration / 30);
-
-        if (count === 0) {
-            this.log('Error: Please select a duration first.', 'error');
-            return;
-        }
-
-        // Generate weighted random selection
-        const selected = this.generateWeightedSelection(count);
-
-        // Show preview
-        this.elements.playlistPreview.classList.remove('hidden');
-        this.elements.previewList.innerHTML = selected.map((video, index) => `
-            <div class="text-gray-300">
-                <span class="text-gray-500">${index + 1}.</span> ${this.escapeHtml(video.filename)}
-                <span class="text-xs ${this.getPriorityColor(video.priority)}">(${this.getPriorityLabel(video.priority)})</span>
-            </div>
-        `).join('');
-
-        this.log(`Generated playlist with ${count} ads (${duration} seconds total).`);
-
-        // Clear existing playlist first, then send new videos
-        await this.clearVmixPlaylistSilent();
-        await this.sendToVmix(selected);
     },
 
     async clearVmixPlaylistSilent() {
