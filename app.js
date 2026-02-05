@@ -6,6 +6,8 @@ const App = {
     pendingFiles: [],
     selectedDurationSeconds: 0,
     dashboardMode: false,
+    autoRefreshInterval: null,
+    autoRefreshEnabled: false,
     settings: {
         vmixIp: '',
         vmixPort: '8088',
@@ -78,6 +80,7 @@ const App = {
             playlistPreview: document.getElementById('playlistPreview'),
             previewList: document.getElementById('previewList'),
             refreshVmixPlaylist: document.getElementById('refreshVmixPlaylist'),
+            autoRefreshToggle: document.getElementById('autoRefreshToggle'),
             clearVmixPlaylist: document.getElementById('clearVmixPlaylist'),
             vmixPlaylistContent: document.getElementById('vmixPlaylistContent'),
 
@@ -116,6 +119,7 @@ const App = {
         });
         this.elements.sendToVmix.addEventListener('click', () => this.generateAndSendPlaylist());
         this.elements.refreshVmixPlaylist.addEventListener('click', () => this.refreshVmixPlaylist());
+        this.elements.autoRefreshToggle.addEventListener('click', () => this.toggleAutoRefresh());
         this.elements.clearVmixPlaylist.addEventListener('click', () => this.clearVmixPlaylist());
 
         // Status log
@@ -289,14 +293,45 @@ const App = {
         `).join('');
     },
 
-    async refreshVmixPlaylist() {
+    toggleAutoRefresh() {
+        this.autoRefreshEnabled = !this.autoRefreshEnabled;
+
+        if (this.autoRefreshEnabled) {
+            this.elements.autoRefreshToggle.textContent = 'Auto ●';
+            this.elements.autoRefreshToggle.classList.remove('text-gray-400');
+            this.elements.autoRefreshToggle.classList.add('text-green-400');
+
+            // Start polling every 2 seconds
+            this.refreshVmixPlaylist(true); // silent refresh
+            this.autoRefreshInterval = setInterval(() => {
+                this.refreshVmixPlaylist(true); // silent refresh
+            }, 2000);
+
+            this.log('Auto-refresh enabled (2s interval)');
+        } else {
+            this.elements.autoRefreshToggle.textContent = 'Auto';
+            this.elements.autoRefreshToggle.classList.remove('text-green-400');
+            this.elements.autoRefreshToggle.classList.add('text-gray-400');
+
+            if (this.autoRefreshInterval) {
+                clearInterval(this.autoRefreshInterval);
+                this.autoRefreshInterval = null;
+            }
+
+            this.log('Auto-refresh disabled');
+        }
+    },
+
+    async refreshVmixPlaylist(silent = false) {
         if (!this.settings.vmixIp || !this.settings.vmixInput) {
             this.elements.vmixPlaylistContent.innerHTML = '<p class="text-red-400 text-sm text-center">Configure vMix settings first</p>';
             return;
         }
 
-        this.elements.vmixPlaylistContent.innerHTML = '<p class="text-gray-400 text-sm text-center">Loading...</p>';
-        this.log('Fetching vMix state...');
+        if (!silent) {
+            this.elements.vmixPlaylistContent.innerHTML = '<p class="text-gray-400 text-sm text-center">Loading...</p>';
+            this.log('Fetching vMix state...');
+        }
 
         try {
             // Fetch the full vMix XML state
@@ -306,13 +341,13 @@ const App = {
             });
 
             const url = `api.php?${params.toString()}&getState=1`;
-            this.log(`API URL: ${url}`);
+            if (!silent) this.log(`API URL: ${url}`);
 
             const response = await fetch(url);
-            this.log(`Fetch status: ${response.status}`);
+            if (!silent) this.log(`Fetch status: ${response.status}`);
 
             const text = await response.text();
-            this.log(`Response length: ${text.length} chars`);
+            if (!silent) this.log(`Response length: ${text.length} chars`);
 
             let data;
             try {
@@ -322,27 +357,29 @@ const App = {
                 throw new Error('Invalid JSON response from server');
             }
 
-            this.log(`vMix HTTP Code: ${data.httpCode || 'unknown'}`);
+            if (!silent) this.log(`vMix HTTP Code: ${data.httpCode || 'unknown'}`);
 
             if (data.success && data.response) {
-                this.log(`vMix response length: ${data.response.length} chars`);
+                if (!silent) this.log(`vMix response length: ${data.response.length} chars`);
 
                 if (data.response.includes('<vmix>')) {
-                    this.parseAndDisplayVmixPlaylist(data.response);
+                    this.parseAndDisplayVmixPlaylist(data.response, silent);
                 } else {
-                    this.log(`Unexpected response: ${data.response.substring(0, 300)}`, 'warning');
+                    if (!silent) this.log(`Unexpected response: ${data.response.substring(0, 300)}`, 'warning');
                     throw new Error('Invalid vMix response - is Web Controller enabled?');
                 }
             } else {
                 throw new Error(data.error || 'Failed to get vMix state');
             }
         } catch (error) {
-            this.elements.vmixPlaylistContent.innerHTML = `<p class="text-red-400 text-sm text-center">${this.escapeHtml(error.message)}</p>`;
-            this.log(`Error: ${error.message}`, 'error');
+            if (!silent) {
+                this.elements.vmixPlaylistContent.innerHTML = `<p class="text-red-400 text-sm text-center">${this.escapeHtml(error.message)}</p>`;
+                this.log(`Error: ${error.message}`, 'error');
+            }
         }
     },
 
-    parseAndDisplayVmixPlaylist(xmlString) {
+    parseAndDisplayVmixPlaylist(xmlString, silent = false) {
         try {
             const parser = new DOMParser();
             const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
@@ -371,12 +408,14 @@ const App = {
             });
 
             if (!playlistInput) {
-                this.log(`Available inputs: ${availableInputs.join(', ')}`, 'warning');
-                this.elements.vmixPlaylistContent.innerHTML = `<p class="text-yellow-400 text-sm text-center">Input "${this.escapeHtml(this.settings.vmixInput)}" not found. Check Status Log for available inputs.</p>`;
+                if (!silent) {
+                    this.log(`Available inputs: ${availableInputs.join(', ')}`, 'warning');
+                    this.elements.vmixPlaylistContent.innerHTML = `<p class="text-yellow-400 text-sm text-center">Input "${this.escapeHtml(this.settings.vmixInput)}" not found. Check Status Log for available inputs.</p>`;
+                }
                 return;
             }
 
-            this.log(`Found input: ${playlistInput.getAttribute('title')} (#${playlistInput.getAttribute('number')})`);
+            if (!silent) this.log(`Found input: ${playlistInput.getAttribute('title')} (#${playlistInput.getAttribute('number')})`);
 
             // Get list items from the playlist input
             const items = playlistInput.querySelectorAll('list item');
@@ -402,10 +441,10 @@ const App = {
             });
 
             this.elements.vmixPlaylistContent.innerHTML = html;
-            this.log(`Loaded ${items.length} items from vMix playlist.`);
+            if (!silent) this.log(`Loaded ${items.length} items from vMix playlist.`);
         } catch (error) {
             this.elements.vmixPlaylistContent.innerHTML = '<p class="text-yellow-400 text-sm text-center">Could not parse playlist</p>';
-            this.log(`Parse error: ${error.message}`, 'error');
+            if (!silent) this.log(`Parse error: ${error.message}`, 'error');
         }
     },
 
