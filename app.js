@@ -305,21 +305,32 @@ const App = {
                 port: this.settings.vmixPort
             });
 
-            const response = await fetch(`api.php?${params.toString()}&getState=1`);
-            const data = await response.json();
+            const url = `api.php?${params.toString()}&getState=1`;
+            this.log(`API URL: ${url}`);
 
-            this.log(`API URL: ${data.url || 'unknown'}`);
-            this.log(`HTTP Code: ${data.httpCode || 'unknown'}`);
-            this.log(`Response length: ${data.response ? data.response.length : 0} chars`);
+            const response = await fetch(url);
+            this.log(`Fetch status: ${response.status}`);
+
+            const text = await response.text();
+            this.log(`Response length: ${text.length} chars`);
+
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (parseError) {
+                this.log(`JSON parse error. Raw response: ${text.substring(0, 200)}`, 'error');
+                throw new Error('Invalid JSON response from server');
+            }
+
+            this.log(`vMix HTTP Code: ${data.httpCode || 'unknown'}`);
 
             if (data.success && data.response) {
-                // Log first part of response for debugging
-                this.log(`Response preview: ${data.response.substring(0, 100)}...`);
+                this.log(`vMix response length: ${data.response.length} chars`);
 
                 if (data.response.includes('<vmix>')) {
                     this.parseAndDisplayVmixPlaylist(data.response);
                 } else {
-                    this.log(`Full response: ${data.response.substring(0, 500)}`, 'warning');
+                    this.log(`Unexpected response: ${data.response.substring(0, 300)}`, 'warning');
                     throw new Error('Invalid vMix response - is Web Controller enabled?');
                 }
             } else {
@@ -327,7 +338,7 @@ const App = {
             }
         } catch (error) {
             this.elements.vmixPlaylistContent.innerHTML = `<p class="text-red-400 text-sm text-center">${this.escapeHtml(error.message)}</p>`;
-            this.log(`Error fetching playlist: ${error.message}`, 'error');
+            this.log(`Error: ${error.message}`, 'error');
         }
     },
 
