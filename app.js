@@ -309,12 +309,17 @@ const App = {
             const data = await response.json();
 
             this.log(`API URL: ${data.url || 'unknown'}`);
+            this.log(`HTTP Code: ${data.httpCode || 'unknown'}`);
+            this.log(`Response length: ${data.response ? data.response.length : 0} chars`);
 
             if (data.success && data.response) {
+                // Log first part of response for debugging
+                this.log(`Response preview: ${data.response.substring(0, 100)}...`);
+
                 if (data.response.includes('<vmix>')) {
                     this.parseAndDisplayVmixPlaylist(data.response);
                 } else {
-                    this.log(`Unexpected response: ${data.response.substring(0, 200)}`, 'warning');
+                    this.log(`Full response: ${data.response.substring(0, 500)}`, 'warning');
                     throw new Error('Invalid vMix response - is Web Controller enabled?');
                 }
             } else {
