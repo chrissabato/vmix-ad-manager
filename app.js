@@ -213,14 +213,22 @@ const App = {
         }
     },
 
-    updateConnectionStatus() {
+    updateConnectionStatus(status = null) {
+        // status: null = check config, 'connected' = green, 'error' = red
         const configured = this.settings.vmixIp && this.settings.vmixInput && this.settings.folderPath;
-        if (configured) {
-            this.elements.connectionIndicator.classList.remove('bg-gray-500', 'bg-red-500');
+
+        this.elements.connectionIndicator.classList.remove('bg-gray-500', 'bg-red-500', 'bg-green-500');
+
+        if (status === 'connected') {
             this.elements.connectionIndicator.classList.add('bg-green-500');
             this.elements.connectionStatus.textContent = `${this.settings.vmixIp}:${this.settings.vmixPort} → ${this.settings.vmixInput}`;
+        } else if (status === 'error') {
+            this.elements.connectionIndicator.classList.add('bg-red-500');
+            this.elements.connectionStatus.textContent = `${this.settings.vmixIp}:${this.settings.vmixPort} (not responding)`;
+        } else if (configured) {
+            this.elements.connectionIndicator.classList.add('bg-gray-500');
+            this.elements.connectionStatus.textContent = `${this.settings.vmixIp}:${this.settings.vmixPort} → ${this.settings.vmixInput}`;
         } else {
-            this.elements.connectionIndicator.classList.remove('bg-green-500', 'bg-red-500');
             this.elements.connectionIndicator.classList.add('bg-gray-500');
             this.elements.connectionStatus.textContent = 'Not configured';
         }
@@ -531,6 +539,7 @@ const App = {
 
                 if (data.response.includes('<vmix>')) {
                     this.parseAndDisplayVmixPlaylist(data.response, silent);
+                    this.updateConnectionStatus('connected');
                 } else {
                     if (!silent) this.log(`Unexpected response: ${data.response.substring(0, 300)}`, 'warning');
                     throw new Error('Invalid vMix response - is Web Controller enabled?');
@@ -539,6 +548,7 @@ const App = {
                 throw new Error(data.error || 'Failed to get vMix state');
             }
         } catch (error) {
+            this.updateConnectionStatus('error');
             if (!silent) {
                 this.elements.vmixPlaylistContent.innerHTML = `<p class="text-red-400 text-sm text-center">${this.escapeHtml(error.message)}</p>`;
                 this.log(`Error: ${error.message}`, 'error');
