@@ -600,26 +600,11 @@ const App = {
             const listElement = playlistInput.querySelector('list');
             const items = playlistInput.querySelectorAll('list item');
 
-            // Debug: Log all attributes on list element and input element
-            let selectedIndex = -1;
-
-            if (!silent) {
-                // Log all attributes on the input element
-                const inputAttrs = Array.from(playlistInput.attributes).map(a => `${a.name}="${a.value}"`).join(', ');
-                this.log(`Input attrs: ${inputAttrs.substring(0, 200)}`);
-
-                // Log all attributes on the list element
-                if (listElement) {
-                    const listAttrs = Array.from(listElement.attributes).map(a => `${a.name}="${a.value}"`).join(', ');
-                    this.log(`List attrs: ${listAttrs}`);
-                }
-
-                // Check first item for selected attribute
-                if (items.length > 0) {
-                    const firstItemAttrs = Array.from(items[0].attributes).map(a => `${a.name}="${a.value}"`).join(', ');
-                    this.log(`First item attrs: ${firstItemAttrs}`);
-                }
-            }
+            // The current playing item is shown in the input's title attribute
+            // Format: "InputName - CurrentFilename.mp4"
+            const inputTitle = playlistInput.getAttribute('title') || '';
+            const currentFilename = inputTitle.includes(' - ') ? inputTitle.split(' - ').slice(1).join(' - ') : '';
+            if (!silent) this.log(`Current playing: ${currentFilename}`);
 
             if (items.length === 0) {
                 this.elements.vmixPlaylistContent.innerHTML = '<p class="text-gray-500 italic text-center text-sm">Playlist is empty</p>';
@@ -630,8 +615,8 @@ const App = {
             items.forEach((item, index) => {
                 const fullPath = item.textContent || '';
                 const filename = fullPath.split('\\').pop().split('/').pop();
-                // vMix uses 1-based index, so compare with index + 1
-                const isSelected = (index + 1) === selectedIndex;
+                // Match by filename with the current playing file from input title
+                const isSelected = filename.toLowerCase() === currentFilename.toLowerCase();
 
                 html += `
                     <div class="text-sm py-1 px-2 rounded mb-1 ${isSelected ? 'bg-green-900 text-green-300' : 'bg-gray-800 text-gray-300'}">
