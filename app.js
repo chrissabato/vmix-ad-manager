@@ -591,6 +591,7 @@ const App = {
             }
 
             let html = '';
+            const totalItems = items.length;
             items.forEach((item, index) => {
                 const fullPath = item.textContent || '';
                 const filename = fullPath.split('\\').pop().split('/').pop();
@@ -601,10 +602,16 @@ const App = {
                 const indexMatch = selectedIndex > 0 && (index + 1) === selectedIndex;
                 const isSelected = itemSelected || indexMatch;
 
+                // Only show "End Here" if there are items after this one
+                const showEndHere = index < totalItems - 1;
+
                 html += `
-                    <div class="text-sm py-1 px-2 rounded mb-1 ${isSelected ? 'bg-green-900 text-green-300' : 'bg-gray-800 text-gray-300'}">
-                        ${isSelected ? '<span class="mr-1">→</span>' : `<span class="text-gray-500 mr-1">${index + 1}.</span>`}
-                        ${this.escapeHtml(displayName)}
+                    <div class="text-sm py-1 px-2 rounded mb-1 ${isSelected ? 'bg-green-900 text-green-300' : 'bg-gray-800 text-gray-300'} flex justify-between items-center">
+                        <span>
+                            ${isSelected ? '<span class="mr-1">→</span>' : `<span class="text-gray-500 mr-1">${index + 1}.</span>`}
+                            ${this.escapeHtml(displayName)}
+                        </span>
+                        ${showEndHere ? `<button onclick="App.endPlaylistHere(${index + 1}, ${totalItems})" class="text-yellow-400 hover:text-yellow-300 text-xs ml-2">End</button>` : ''}
                     </div>
                 `;
             });
@@ -614,6 +621,37 @@ const App = {
         } catch (error) {
             this.elements.vmixPlaylistContent.innerHTML = '<p class="text-yellow-400 text-sm text-center">Could not parse playlist</p>';
             if (!silent) this.log(`Parse error: ${error.message}`, 'error');
+        }
+    },
+
+    async endPlaylistHere(keepIndex, totalItems) {
+        // Remove all items after keepIndex (1-based)
+        // We need to remove from the end backwards to avoid index shifting
+        const itemsToRemove = totalItems - keepIndex;
+
+        if (itemsToRemove <= 0) return;
+
+        this.log(`Removing ${itemsToRemove} items after position ${keepIndex}...`);
+
+        try {
+            // Remove items from the end, one at a time
+            for (let i = totalItems; i > keepIndex; i--) {
+                const params = new URLSearchParams({
+                    ip: this.settings.vmixIp,
+                    port: this.settings.vmixPort,
+                    function: 'ListRemove',
+                    input: this.settings.vmixInput,
+                    value: i.toString()
+                });
+
+                await fetch(`api.php?${params.toString()}`);
+                await this.sleep(50);
+            }
+
+            this.log(`Removed ${itemsToRemove} items. Playlist now ends at position ${keepIndex}.`, 'success');
+            this.refreshVmixPlaylist(true);
+        } catch (error) {
+            this.log(`Error removing items: ${error.message}`, 'error');
         }
     },
 
