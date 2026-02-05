@@ -9,6 +9,7 @@ const App = {
     autoRefreshInterval: null,
     autoRefreshEnabled: false,
     previewPlaylist: [], // manually built playlist for preview
+    previewIdCounter: 0, // counter for unique preview IDs
     settings: {
         vmixIp: '',
         vmixPort: '8088',
@@ -292,7 +293,12 @@ const App = {
         }
 
         const count = Math.floor(this.selectedDurationSeconds / 30);
-        this.previewPlaylist = this.generateWeightedSelection(count);
+        const selected = this.generateWeightedSelection(count);
+        // Assign unique previewIds to each item
+        this.previewPlaylist = selected.map(video => {
+            this.previewIdCounter++;
+            return {...video, previewId: this.previewIdCounter};
+        });
         this.renderPreviewPlaylist();
     },
 
@@ -320,7 +326,8 @@ const App = {
     addToPreview(videoId) {
         const video = this.videos.find(v => v.id === videoId);
         if (video) {
-            this.previewPlaylist.push({...video, previewId: Date.now() + Math.random()});
+            this.previewIdCounter++;
+            this.previewPlaylist.push({...video, previewId: this.previewIdCounter});
             this.renderPreviewPlaylist();
         }
     },
