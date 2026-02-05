@@ -3,6 +3,7 @@
 const App = {
     // State
     videos: [],
+    pendingFiles: [],
     settings: {
         vmixIp: '',
         vmixPort: '8088',
@@ -149,8 +150,6 @@ const App = {
     },
 
     // Video management
-    pendingFiles: [],
-
     previewSelectedFiles(event) {
         const files = event.target.files;
         if (!files || files.length === 0) {
