@@ -41,6 +41,9 @@ const App = {
             useProxy: document.getElementById('useProxy'),
 
             // Video adding
+            fileBrowser: document.getElementById('fileBrowser'),
+            fileBrowserPriority: document.getElementById('fileBrowserPriority'),
+            filePreview: document.getElementById('filePreview'),
             videoFilename: document.getElementById('videoFilename'),
             videoPriority: document.getElementById('videoPriority'),
             addVideo: document.getElementById('addVideo'),
@@ -72,6 +75,7 @@ const App = {
         this.elements.toggleSettings.addEventListener('click', () => this.toggleSettings());
 
         // Video adding
+        this.elements.fileBrowser.addEventListener('change', (e) => this.handleFileBrowser(e));
         this.elements.addVideo.addEventListener('click', () => this.addVideo());
         this.elements.videoFilename.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.addVideo();
@@ -143,6 +147,44 @@ const App = {
     },
 
     // Video management
+    handleFileBrowser(event) {
+        const files = event.target.files;
+        if (!files || files.length === 0) return;
+
+        const priority = parseInt(this.elements.fileBrowserPriority.value);
+        let added = 0;
+        let skipped = 0;
+
+        for (const file of files) {
+            const filename = file.name;
+
+            // Check for duplicates
+            if (this.videos.some(v => v.filename.toLowerCase() === filename.toLowerCase())) {
+                skipped++;
+                continue;
+            }
+
+            this.videos.push({
+                id: Date.now() + Math.random(),
+                filename: filename,
+                priority: priority
+            });
+            added++;
+        }
+
+        this.saveVideos();
+
+        // Show preview
+        this.elements.filePreview.classList.remove('hidden');
+        this.elements.filePreview.innerHTML = `<span class="text-green-400">${added} file(s) added</span>` +
+            (skipped > 0 ? `, <span class="text-yellow-400">${skipped} skipped (duplicates)</span>` : '');
+
+        // Clear the file input so the same files can be selected again if needed
+        event.target.value = '';
+
+        this.log(`File browser: ${added} added, ${skipped} skipped (Priority: ${this.getPriorityLabel(priority)})`);
+    },
+
     loadVideos() {
         const saved = localStorage.getItem('vmixAdManager_videos');
         if (saved) {
