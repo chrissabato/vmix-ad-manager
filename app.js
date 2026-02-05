@@ -79,8 +79,6 @@ const App = {
             connectionStatus: document.getElementById('connectionStatus'),
             libraryCount: document.getElementById('libraryCount'),
             durationBtns: document.querySelectorAll('.duration-btn'),
-            customDuration: document.getElementById('customDuration'),
-            customDurationBtn: document.getElementById('customDurationBtn'),
             selectedDuration: document.getElementById('selectedDuration'),
             selectedDurationText: document.getElementById('selectedDurationText'),
             selectedAdCount: document.getElementById('selectedAdCount'),
@@ -125,10 +123,6 @@ const App = {
         this.elements.toggleDashboardMode.addEventListener('click', () => this.toggleDashboardMode());
         this.elements.durationBtns.forEach(btn => {
             btn.addEventListener('click', () => this.selectDuration(parseInt(btn.dataset.duration)));
-        });
-        this.elements.customDurationBtn.addEventListener('click', () => this.selectCustomDuration());
-        this.elements.customDuration.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.selectCustomDuration();
         });
         this.elements.sendToVmix.addEventListener('click', () => this.sendPreviewToVmix());
         this.elements.clearPreview.addEventListener('click', () => this.clearPreviewPlaylist());
@@ -248,24 +242,6 @@ const App = {
         this.showSelectedDuration(seconds);
 
         // Generate preview
-        this.generatePreview();
-    },
-
-    selectCustomDuration() {
-        const seconds = parseInt(this.elements.customDuration.value);
-        if (!seconds || seconds < 30) {
-            this.log('Error: Duration must be at least 30 seconds.', 'error');
-            return;
-        }
-
-        // Clear preset button states
-        this.elements.durationBtns.forEach(btn => {
-            btn.classList.remove('bg-blue-600');
-            btn.classList.add('bg-gray-700');
-        });
-
-        this.selectedDurationSeconds = seconds;
-        this.showSelectedDuration(seconds);
         this.generatePreview();
     },
 
