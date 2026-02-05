@@ -54,9 +54,7 @@ if ($vmixPort < 1 || $vmixPort > 65535) {
 // Build vMix API URL
 $vmixUrl = "http://{$vmixIp}:{$vmixPort}/api/";
 
-if ($getState) {
-    // Get full XML state - no parameters needed
-} else {
+if (!$getState) {
     $params = ['Function' => $function];
 
     if (!empty($input)) {
@@ -69,7 +67,56 @@ if ($getState) {
     $vmixUrl .= '?' . http_build_query($params);
 }
 
-// Make request to vMix
+// Try cURL first (more reliable)
+if (function_exists('curl_init')) {
+    $ch = curl_init();
+    curl_setopt_array($ch, [
+        CURLOPT_URL => $vmixUrl,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 10,
+        CURLOPT_CONNECTTIMEOUT => 5,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    ]);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    $curlErrno = curl_errno($ch);
+    curl_close($ch);
+
+    if ($curlErrno !== 0) {
+        http_response_code(502);
+        echo json_encode([
+            'success' => false,
+            'error' => "Connection failed: {$curlError}",
+            'url' => $vmixUrl,
+            'curlErrno' => $curlErrno,
+            'hint' => 'Check if vMix Web Controller is enabled and accessible from this server'
+        ]);
+        exit;
+    }
+
+    echo json_encode([
+        'success' => true,
+        'response' => $response,
+        'url' => $vmixUrl,
+        'httpCode' => $httpCode
+    ]);
+    exit;
+}
+
+// Fallback to file_get_contents
+if (!ini_get('allow_url_fopen')) {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Server configuration error: cURL not available and allow_url_fopen is disabled',
+        'hint' => 'Contact server administrator to enable cURL or allow_url_fopen'
+    ]);
+    exit;
+}
+
 $context = stream_context_create([
     'http' => [
         'method' => 'GET',
@@ -86,7 +133,9 @@ if ($response === false) {
     echo json_encode([
         'success' => false,
         'error' => 'Failed to connect to vMix API',
-        'details' => $error['message'] ?? 'Unknown error'
+        'details' => $error['message'] ?? 'Unknown error',
+        'url' => $vmixUrl,
+        'hint' => 'Check if vMix Web Controller is enabled and accessible from this server'
     ]);
     exit;
 }
@@ -102,16 +151,9 @@ if (isset($http_response_header) && is_array($http_response_header)) {
     }
 }
 
-// Return response with debug info
 echo json_encode([
     'success' => true,
     'response' => $response,
     'url' => $vmixUrl,
-    'httpCode' => $httpCode,
-    'debug' => [
-        'function' => $function,
-        'input' => $input,
-        'value' => $value,
-        'getState' => $getState
-    ]
+    'httpCode' => $httpCode
 ]);

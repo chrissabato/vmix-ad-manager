@@ -812,7 +812,13 @@ const App = {
                 }
             } catch (error) {
                 errorCount++;
-                this.log(`Failed to add: ${video.filename} - ${error.message}`, 'error');
+                this.log(`Failed to add: ${video.filename}`, 'error');
+                this.log(`Error: ${error.message}`, 'error');
+                // Stop on first error to avoid spamming
+                if (errorCount >= 3) {
+                    this.log('Too many errors, stopping...', 'error');
+                    break;
+                }
             }
 
             // Small delay between requests to avoid overwhelming vMix
