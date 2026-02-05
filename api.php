@@ -97,12 +97,28 @@ if (function_exists('curl_init')) {
         exit;
     }
 
-    echo json_encode([
+    // Ensure response is valid UTF-8 for JSON encoding
+    $response = mb_convert_encoding($response, 'UTF-8', 'UTF-8');
+
+    $result = json_encode([
         'success' => true,
         'response' => $response,
         'url' => $vmixUrl,
         'httpCode' => $httpCode
     ]);
+
+    // Check if JSON encoding failed
+    if ($result === false) {
+        echo json_encode([
+            'success' => false,
+            'error' => 'JSON encoding failed: ' . json_last_error_msg(),
+            'url' => $vmixUrl,
+            'responseLength' => strlen($response)
+        ]);
+        exit;
+    }
+
+    echo $result;
     exit;
 }
 
@@ -151,9 +167,23 @@ if (isset($http_response_header) && is_array($http_response_header)) {
     }
 }
 
-echo json_encode([
+// Ensure response is valid UTF-8 for JSON encoding
+$response = mb_convert_encoding($response, 'UTF-8', 'UTF-8');
+
+$result = json_encode([
     'success' => true,
     'response' => $response,
     'url' => $vmixUrl,
     'httpCode' => $httpCode
 ]);
+
+if ($result === false) {
+    echo json_encode([
+        'success' => false,
+        'error' => 'JSON encoding failed: ' . json_last_error_msg(),
+        'url' => $vmixUrl
+    ]);
+    exit;
+}
+
+echo $result;

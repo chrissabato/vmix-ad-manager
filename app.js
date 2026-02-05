@@ -814,11 +814,16 @@ const App = {
                     const data = await response.json();
 
                     if (data.success) {
-                        successCount++;
-                        this.log(`Added: ${video.filename}`);
-                        // Log API response for debugging
-                        if (data.response && data.response.includes('Error')) {
-                            this.log(`vMix response: ${data.response}`, 'warning');
+                        // Check vMix response for errors
+                        const vmixResponse = data.response || '';
+                        this.log(`vMix response: ${vmixResponse.substring(0, 100)}`);
+
+                        if (vmixResponse.includes('Error') || vmixResponse.includes('error')) {
+                            this.log(`vMix error: ${vmixResponse}`, 'error');
+                            errorCount++;
+                        } else {
+                            successCount++;
+                            this.log(`Added: ${video.filename}`);
                         }
                     } else {
                         throw new Error(data.error || 'Unknown error');
