@@ -822,8 +822,25 @@ const App = {
 
         this.log(`Generated playlist with ${count} ads (${duration} seconds total).`);
 
-        // Send to vMix
+        // Clear existing playlist first, then send new videos
+        await this.clearVmixPlaylistSilent();
         await this.sendToVmix(selected);
+    },
+
+    async clearVmixPlaylistSilent() {
+        try {
+            const params = new URLSearchParams({
+                ip: this.settings.vmixIp,
+                port: this.settings.vmixPort,
+                function: 'ListRemoveAll',
+                input: this.settings.vmixInput
+            });
+
+            await fetch(`api.php?${params.toString()}`);
+            this.log('Cleared existing playlist.');
+        } catch (error) {
+            this.log(`Warning: Could not clear playlist: ${error.message}`, 'warning');
+        }
     },
 
     async sendToVmix(videos) {
