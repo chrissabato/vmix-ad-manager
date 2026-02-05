@@ -83,6 +83,7 @@ const App = {
             selectedDurationText: document.getElementById('selectedDurationText'),
             selectedAdCount: document.getElementById('selectedAdCount'),
             sendToVmix: document.getElementById('sendToVmix'),
+            appendToVmix: document.getElementById('appendToVmix'),
             playlistPreview: document.getElementById('playlistPreview'),
             previewList: document.getElementById('previewList'),
             clearPreview: document.getElementById('clearPreview'),
@@ -128,7 +129,8 @@ const App = {
         this.elements.durationBtns.forEach(btn => {
             btn.addEventListener('click', () => this.selectDuration(parseInt(btn.dataset.duration)));
         });
-        this.elements.sendToVmix.addEventListener('click', () => this.sendPreviewToVmix());
+        this.elements.sendToVmix.addEventListener('click', () => this.sendPreviewToVmix(true));
+        this.elements.appendToVmix.addEventListener('click', () => this.sendPreviewToVmix(false));
         this.elements.clearPreview.addEventListener('click', () => this.clearPreviewPlaylist());
         this.elements.refreshVmixPlaylist.addEventListener('click', () => this.refreshVmixPlaylist());
         this.elements.autoRefreshToggle.addEventListener('click', () => this.toggleAutoRefresh());
@@ -428,7 +430,7 @@ const App = {
         this.draggedIndex = null;
     },
 
-    async sendPreviewToVmix() {
+    async sendPreviewToVmix(replaceExisting = true) {
         if (this.previewPlaylist.length === 0) {
             this.log('Error: No ads in preview playlist.', 'error');
             return;
@@ -448,10 +450,13 @@ const App = {
             return;
         }
 
-        this.log(`Sending ${this.previewPlaylist.length} ads to vMix...`);
+        const action = replaceExisting ? 'Replacing playlist with' : 'Appending';
+        this.log(`${action} ${this.previewPlaylist.length} ads to vMix...`);
 
-        // Clear existing playlist first, then send new videos
-        await this.clearVmixPlaylistSilent();
+        // Clear existing playlist first if replacing
+        if (replaceExisting) {
+            await this.clearVmixPlaylistSilent();
+        }
         await this.sendToVmix(this.previewPlaylist);
     },
 
