@@ -771,10 +771,11 @@ const App = {
 
                 if (this.settings.useProxy) {
                     // Use PHP proxy to avoid CORS issues
+                    // Use ListAdd for List inputs in vMix
                     const params = new URLSearchParams({
                         ip: this.settings.vmixIp,
                         port: this.settings.vmixPort,
-                        function: 'PlayListAdd',
+                        function: 'ListAdd',
                         input: this.settings.vmixInput,
                         value: fullPath
                     });
