@@ -335,18 +335,32 @@ const App = {
             const inputs = xmlDoc.querySelectorAll('input');
             let playlistInput = null;
 
-            inputs.forEach(input => {
+            // Log available inputs for debugging
+            const availableInputs = [];
+            inputs.forEach((input, index) => {
                 const title = input.getAttribute('title') || '';
-                const name = input.getAttribute('name') || '';
-                if (title === this.settings.vmixInput || name === this.settings.vmixInput) {
+                const key = input.getAttribute('key') || '';
+                const number = input.getAttribute('number') || '';
+                const type = input.getAttribute('type') || '';
+                availableInputs.push(`${number}: ${title} (${type})`);
+
+                // Match by title, key, or number
+                const searchTerm = this.settings.vmixInput.toLowerCase();
+                if (title.toLowerCase() === searchTerm ||
+                    key === this.settings.vmixInput ||
+                    number === this.settings.vmixInput ||
+                    title.toLowerCase().includes(searchTerm)) {
                     playlistInput = input;
                 }
             });
 
             if (!playlistInput) {
-                this.elements.vmixPlaylistContent.innerHTML = `<p class="text-yellow-400 text-sm text-center">Input "${this.escapeHtml(this.settings.vmixInput)}" not found</p>`;
+                this.log(`Available inputs: ${availableInputs.join(', ')}`, 'warning');
+                this.elements.vmixPlaylistContent.innerHTML = `<p class="text-yellow-400 text-sm text-center">Input "${this.escapeHtml(this.settings.vmixInput)}" not found. Check Status Log for available inputs.</p>`;
                 return;
             }
+
+            this.log(`Found input: ${playlistInput.getAttribute('title')} (#${playlistInput.getAttribute('number')})`);
 
             // Get list items from the playlist input
             const items = playlistInput.querySelectorAll('list item');
