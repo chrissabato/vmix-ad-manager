@@ -601,18 +601,20 @@ const App = {
             const items = playlistInput.querySelectorAll('list item');
 
             // Try different attributes vMix might use for selected index
+            // vMix typically uses 1-based indexing
             let selectedIndex = -1;
             if (listElement) {
-                selectedIndex = parseInt(listElement.getAttribute('index')) ||
-                               parseInt(listElement.getAttribute('selectedIndex')) ||
-                               parseInt(listElement.getAttribute('selected')) || 0;
-                if (!silent) this.log(`List attributes - index: ${listElement.getAttribute('index')}, selectedIndex: ${listElement.getAttribute('selectedIndex')}`);
-            }
+                const indexAttr = listElement.getAttribute('index');
+                const selectedIndexAttr = listElement.getAttribute('selectedIndex');
 
-            // Also check input level attributes
-            const inputIndex = playlistInput.getAttribute('selectedIndex') ||
-                              playlistInput.getAttribute('index');
-            if (!silent && inputIndex) this.log(`Input selectedIndex: ${inputIndex}`);
+                if (indexAttr !== null) {
+                    selectedIndex = parseInt(indexAttr);
+                } else if (selectedIndexAttr !== null) {
+                    selectedIndex = parseInt(selectedIndexAttr);
+                }
+
+                if (!silent) this.log(`List index attribute: ${indexAttr} (parsed: ${selectedIndex})`);
+            }
 
             if (items.length === 0) {
                 this.elements.vmixPlaylistContent.innerHTML = '<p class="text-gray-500 italic text-center text-sm">Playlist is empty</p>';
@@ -623,7 +625,8 @@ const App = {
             items.forEach((item, index) => {
                 const fullPath = item.textContent || '';
                 const filename = fullPath.split('\\').pop().split('/').pop();
-                const isSelected = index === selectedIndex;
+                // vMix uses 1-based index, so compare with index + 1
+                const isSelected = (index + 1) === selectedIndex;
 
                 html += `
                     <div class="text-sm py-1 px-2 rounded mb-1 ${isSelected ? 'bg-green-900 text-green-300' : 'bg-gray-800 text-gray-300'}">
