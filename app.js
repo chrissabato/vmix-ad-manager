@@ -600,20 +600,25 @@ const App = {
             const listElement = playlistInput.querySelector('list');
             const items = playlistInput.querySelectorAll('list item');
 
-            // Try different attributes vMix might use for selected index
-            // vMix typically uses 1-based indexing
+            // Debug: Log all attributes on list element and input element
             let selectedIndex = -1;
-            if (listElement) {
-                const indexAttr = listElement.getAttribute('index');
-                const selectedIndexAttr = listElement.getAttribute('selectedIndex');
 
-                if (indexAttr !== null) {
-                    selectedIndex = parseInt(indexAttr);
-                } else if (selectedIndexAttr !== null) {
-                    selectedIndex = parseInt(selectedIndexAttr);
+            if (!silent) {
+                // Log all attributes on the input element
+                const inputAttrs = Array.from(playlistInput.attributes).map(a => `${a.name}="${a.value}"`).join(', ');
+                this.log(`Input attrs: ${inputAttrs.substring(0, 200)}`);
+
+                // Log all attributes on the list element
+                if (listElement) {
+                    const listAttrs = Array.from(listElement.attributes).map(a => `${a.name}="${a.value}"`).join(', ');
+                    this.log(`List attrs: ${listAttrs}`);
                 }
 
-                if (!silent) this.log(`List index attribute: ${indexAttr} (parsed: ${selectedIndex})`);
+                // Check first item for selected attribute
+                if (items.length > 0) {
+                    const firstItemAttrs = Array.from(items[0].attributes).map(a => `${a.name}="${a.value}"`).join(', ');
+                    this.log(`First item attrs: ${firstItemAttrs}`);
+                }
             }
 
             if (items.length === 0) {
