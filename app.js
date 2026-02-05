@@ -308,8 +308,15 @@ const App = {
             const response = await fetch(`api.php?${params.toString()}&getState=1`);
             const data = await response.json();
 
+            this.log(`API URL: ${data.url || 'unknown'}`);
+
             if (data.success && data.response) {
-                this.parseAndDisplayVmixPlaylist(data.response);
+                if (data.response.includes('<vmix>')) {
+                    this.parseAndDisplayVmixPlaylist(data.response);
+                } else {
+                    this.log(`Unexpected response: ${data.response.substring(0, 200)}`, 'warning');
+                    throw new Error('Invalid vMix response - is Web Controller enabled?');
+                }
             } else {
                 throw new Error(data.error || 'Failed to get vMix state');
             }
@@ -778,6 +785,10 @@ const App = {
                     if (data.success) {
                         successCount++;
                         this.log(`Added: ${video.filename}`);
+                        // Log API response for debugging
+                        if (data.response && data.response.includes('Error')) {
+                            this.log(`vMix response: ${data.response}`, 'warning');
+                        }
                     } else {
                         throw new Error(data.error || 'Unknown error');
                     }

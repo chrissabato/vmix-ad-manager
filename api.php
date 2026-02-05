@@ -91,9 +91,27 @@ if ($response === false) {
     exit;
 }
 
-// Return success
+// Check HTTP response code
+$httpCode = null;
+if (isset($http_response_header) && is_array($http_response_header)) {
+    foreach ($http_response_header as $header) {
+        if (preg_match('/HTTP\/\d\.\d\s+(\d+)/', $header, $matches)) {
+            $httpCode = intval($matches[1]);
+            break;
+        }
+    }
+}
+
+// Return response with debug info
 echo json_encode([
     'success' => true,
     'response' => $response,
-    'url' => $vmixUrl
+    'url' => $vmixUrl,
+    'httpCode' => $httpCode,
+    'debug' => [
+        'function' => $function,
+        'input' => $input,
+        'value' => $value,
+        'getState' => $getState
+    ]
 ]);
