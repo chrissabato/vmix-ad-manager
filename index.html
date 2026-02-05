@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>vMix Ad Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Header -->
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-white mb-2">vMix Ad Manager</h1>
+            <p class="text-gray-400">Manage and schedule video ads for vMix playlists</p>
+        </header>
+
+        <!-- Settings Panel -->
+        <section class="bg-gray-800 rounded-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <span class="mr-2">Settings</span>
+                <button id="toggleSettings" class="text-sm text-gray-400 hover:text-white">
+                    [collapse]
+                </button>
+            </h2>
+            <div id="settingsContent" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">vMix IP Address</label>
+                    <input type="text" id="vmixIp" placeholder="192.168.1.100"
+                        class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">vMix Port</label>
+                    <input type="text" id="vmixPort" placeholder="8088"
+                        class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">vMix Input Name</label>
+                    <input type="text" id="vmixInput" placeholder="Playlist 1"
+                        class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Video Folder Path</label>
+                    <input type="text" id="folderPath" placeholder="C:\Videos\Ads\"
+                        class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500">
+                </div>
+            </div>
+            <div class="mt-4 flex items-center">
+                <input type="checkbox" id="useProxy" checked
+                    class="w-4 h-4 bg-gray-700 border-gray-600 rounded focus:ring-blue-500">
+                <label for="useProxy" class="ml-2 text-sm text-gray-300">Use PHP proxy for API calls (recommended for CORS compatibility)</label>
+            </div>
+            <div class="mt-4">
+                <button id="saveSettings" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium transition-colors">
+                    Save Settings
+                </button>
+                <span id="settingsSaved" class="ml-3 text-green-400 hidden">Settings saved!</span>
+            </div>
+        </section>
+
+        <!-- Add Videos Panel -->
+        <section class="bg-gray-800 rounded-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Add Videos</h2>
+            <div class="flex flex-col md:flex-row gap-4">
+                <div class="flex-1">
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Video Filename</label>
+                    <input type="text" id="videoFilename" placeholder="ad_video_01.mp4"
+                        class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500">
+                </div>
+                <div class="w-full md:w-48">
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Priority</label>
+                    <select id="videoPriority" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+                        <option value="1">Low</option>
+                        <option value="2" selected>Medium</option>
+                        <option value="3">High</option>
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <button id="addVideo" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded font-medium transition-colors">
+                        Add Video
+                    </button>
+                </div>
+            </div>
+            <div class="mt-4">
+                <label class="block text-sm font-medium text-gray-300 mb-1">Bulk Add (one filename per line)</label>
+                <textarea id="bulkVideos" rows="3" placeholder="video1.mp4&#10;video2.mp4&#10;video3.mp4"
+                    class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"></textarea>
+                <button id="bulkAddVideos" class="mt-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-medium transition-colors">
+                    Bulk Add (Medium Priority)
+                </button>
+            </div>
+        </section>
+
+        <!-- Video Library -->
+        <section class="bg-gray-800 rounded-lg p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">Video Library</h2>
+                <div class="flex gap-2">
+                    <span id="videoCount" class="text-gray-400">0 videos</span>
+                    <button id="clearAllVideos" class="text-red-400 hover:text-red-300 text-sm ml-4">
+                        Clear All
+                    </button>
+                </div>
+            </div>
+            <div id="videoList" class="space-y-2 max-h-96 overflow-y-auto">
+                <p class="text-gray-500 italic">No videos added yet.</p>
+            </div>
+        </section>
+
+        <!-- Playlist Generator -->
+        <section class="bg-gray-800 rounded-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Generate Playlist</h2>
+            <div class="flex flex-col md:flex-row gap-4 items-end">
+                <div class="flex-1">
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Ad Break Duration</label>
+                    <div class="flex gap-2">
+                        <input type="number" id="adDuration" min="30" step="30" value="120"
+                            class="w-32 bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+                        <span class="flex items-center text-gray-400">seconds</span>
+                    </div>
+                </div>
+                <div class="text-gray-400">
+                    <span id="adCount">4</span> ads will be selected (30 sec each)
+                </div>
+                <div>
+                    <button id="generatePlaylist" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded font-medium transition-colors">
+                        Generate &amp; Send to vMix
+                    </button>
+                </div>
+            </div>
+
+            <!-- Preview -->
+            <div id="playlistPreview" class="mt-6 hidden">
+                <h3 class="text-lg font-medium mb-2">Generated Playlist Preview</h3>
+                <div id="previewList" class="bg-gray-900 rounded p-4 space-y-1"></div>
+            </div>
+        </section>
+
+        <!-- Status Log -->
+        <section class="bg-gray-800 rounded-lg p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">Status Log</h2>
+                <button id="clearLog" class="text-gray-400 hover:text-white text-sm">Clear</button>
+            </div>
+            <div id="statusLog" class="bg-gray-900 rounded p-4 h-48 overflow-y-auto font-mono text-sm">
+                <p class="text-gray-500">Ready.</p>
+            </div>
+        </section>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
