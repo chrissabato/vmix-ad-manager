@@ -13,7 +13,7 @@ const App = {
     draggedItem: null, // currently dragged element
     draggedIndex: null, // index of dragged item
     settings: {
-        vmixIp: '',
+        vmixIp: '127.0.0.1',
         vmixPort: '8088',
         vmixInput: '',
         folderPath: '',
