@@ -210,7 +210,7 @@ const App = {
     updateApiUrl() {
         const el = document.getElementById('apiUrl');
         if (!el) return;
-        el.textContent = new URL('playlist.php?count=4', window.location.href).href;
+        el.textContent = new URL('playlist.php?count=2', window.location.href).href;
     },
 
     syncToServer(type, data) {
