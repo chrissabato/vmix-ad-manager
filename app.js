@@ -24,12 +24,11 @@ const App = {
     elements: {},
 
     // Initialize the application
-    init() {
+    async init() {
         this.cacheElements();
-        this.loadSettings();
-        this.loadVideos();
         this.loadDashboardMode();
         this.bindEvents();
+        await this.loadFromServer();
         this.updateVideoCount();
         this.updateConnectionStatus();
         this.updateLibraryCount();
@@ -39,6 +38,39 @@ const App = {
 
         // Enable auto-refresh by default
         this.toggleAutoRefresh();
+    },
+
+    // Load settings and videos from server; fall back to localStorage
+    async loadFromServer() {
+        try {
+            const response = await fetch('load.php');
+            const data = await response.json();
+
+            if (data.settings) {
+                this.settings = data.settings;
+                localStorage.setItem('vmixAdManager_settings', JSON.stringify(this.settings));
+            } else {
+                this.loadSettings();
+            }
+
+            if (data.videos) {
+                this.videos = data.videos;
+                localStorage.setItem('vmixAdManager_videos', JSON.stringify(this.videos));
+            } else {
+                this.loadVideos();
+            }
+
+            // Populate settings fields
+            this.elements.vmixIp.value     = this.settings.vmixIp    || '127.0.0.1';
+            this.elements.vmixPort.value   = this.settings.vmixPort   || '8088';
+            this.elements.vmixInput.value  = this.settings.vmixInput  || '';
+            this.elements.folderPath.value = this.settings.folderPath || '';
+            this.elements.useProxy.checked = this.settings.useProxy !== false;
+        } catch (e) {
+            // Server unavailable — fall back to localStorage
+            this.loadSettings();
+            this.loadVideos();
+        }
     },
 
     // Cache DOM elements for performance
