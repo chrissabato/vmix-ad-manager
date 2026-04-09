@@ -68,7 +68,7 @@ const App = {
         }
 
         // Active profile is per-browser (localStorage)
-        const savedId = Number(localStorage.getItem('vmixAdManager_activeProfileId'));
+        const savedId = localStorage.getItem('vmixAdManager_activeProfileId');
         const found = this.profiles.find(p => p.id === savedId);
         this.activeProfileId = found ? found.id : this.profiles[0].id;
         localStorage.setItem('vmixAdManager_activeProfileId', this.activeProfileId);
@@ -77,12 +77,24 @@ const App = {
         this.applyActiveProfile();
     },
 
+    slugify(name) {
+        return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'setup';
+    },
+
+    uniqueProfileId(name) {
+        const base = this.slugify(name);
+        if (!this.profiles.find(p => p.id === base)) return base;
+        let n = 2;
+        while (this.profiles.find(p => p.id === `${base}-${n}`)) n++;
+        return `${base}-${n}`;
+    },
+
     // Migrate old flat settings into a Default profile on first load
     buildDefaultProfile() {
         const old = localStorage.getItem('vmixAdManager_settings');
         const base = old ? JSON.parse(old) : {};
         return {
-            id: Date.now(),
+            id: 'default',
             name: 'Default',
             vmixIp:      base.vmixIp      || '127.0.0.1',
             vmixPort:    base.vmixPort     || '8088',
@@ -166,7 +178,7 @@ const App = {
     // Bind event listeners
     bindEvents() {
         // Profiles
-        this.elements.profileSelect.addEventListener('change', (e) => this.selectProfile(Number(e.target.value)));
+        this.elements.profileSelect.addEventListener('change', (e) => this.selectProfile(e.target.value));
         this.elements.addProfile.addEventListener('click', () => this.addProfile());
         this.elements.renameProfile.addEventListener('click', () => this.renameProfile());
         this.elements.deleteProfile.addEventListener('click', () => this.deleteProfile());
@@ -247,7 +259,7 @@ const App = {
         const name = prompt('Setup name:');
         if (!name || !name.trim()) return;
         const profile = {
-            id: Date.now(),
+            id: this.uniqueProfileId(name.trim()),
             name: name.trim(),
             vmixIp: '127.0.0.1',
             vmixPort: '8088',
