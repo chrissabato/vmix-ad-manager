@@ -204,6 +204,9 @@ const App = {
         this.elements.durationBtns.forEach(btn => {
             btn.addEventListener('click', () => this.selectDuration(parseInt(btn.dataset.duration)));
         });
+        document.querySelectorAll('.quick-send-btn').forEach(btn => {
+            btn.addEventListener('click', () => this.quickSend(parseInt(btn.dataset.duration)));
+        });
         this.elements.sendToVmix.addEventListener('click', () => this.sendPreviewToVmix(true));
         this.elements.appendToVmix.addEventListener('click', () => this.sendPreviewToVmix(false));
         this.elements.clearPreview.addEventListener('click', () => this.clearPreviewPlaylist());
@@ -637,6 +640,22 @@ const App = {
             await this.clearVmixPlaylistSilent();
         }
         await this.sendToVmix(this.previewPlaylist);
+    },
+
+    async quickSend(seconds) {
+        if (this.videos.length === 0) {
+            this.log('Error: No videos in library.', 'error');
+            return;
+        }
+        if (!this.settings.vmixIp || !this.settings.vmixInput || !this.settings.folderPath) {
+            this.log('Error: vMix settings not configured.', 'error');
+            return;
+        }
+        const count = Math.floor(seconds / 30);
+        const selected = this.generateWeightedSelection(count);
+        this.log(`Quick send: ${count} ads (${seconds}s) to vMix...`);
+        await this.clearVmixPlaylistSilent();
+        await this.sendToVmix(selected);
     },
 
     toggleAutoRefresh() {
