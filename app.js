@@ -210,8 +210,7 @@ const App = {
     updateApiUrl() {
         const el = document.getElementById('apiUrl');
         if (!el) return;
-        const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
-        el.textContent = `${base}playlist.php?count=4`;
+        el.textContent = new URL('playlist.php?count=4', window.location.href).href;
     },
 
     syncToServer(type, data) {
