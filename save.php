@@ -32,6 +32,12 @@ if (!is_dir('data')) {
     mkdir('data', 0755, true);
 }
 
-file_put_contents("data/{$type}.json", $data);
+$written = file_put_contents("data/{$type}.json", $data);
+
+if ($written === false) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => "Could not write data/{$type}.json — check directory permissions"]);
+    exit;
+}
 
 echo json_encode(['success' => true]);

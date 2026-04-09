@@ -177,7 +177,10 @@ const App = {
         const body = new FormData();
         body.append('type', type);
         body.append('data', JSON.stringify(data));
-        fetch('save.php', { method: 'POST', body }).catch(() => {});
+        fetch('save.php', { method: 'POST', body })
+            .then(r => r.json())
+            .then(r => { if (!r.success) this.log(`Server sync failed (${type}): ${r.error}`, 'error'); })
+            .catch(e => this.log(`Server sync error (${type}): ${e.message}`, 'error'));
     },
 
     toggleSettings() {
