@@ -29,7 +29,11 @@ if (json_decode($data) === null) {
 }
 
 if (!is_dir('data')) {
-    mkdir('data', 0755, true);
+    if (!mkdir('data', 0755, true)) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'error' => 'Could not create data/ directory — check web server write permissions on ' . __DIR__]);
+        exit;
+    }
 }
 
 $written = file_put_contents("data/{$type}.json", $data);
