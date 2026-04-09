@@ -51,6 +51,20 @@ const App = {
 
             if (data.profiles && data.profiles.length > 0) {
                 this.profiles = data.profiles;
+                // Migrate any numeric IDs to slugs
+                let migrated = false;
+                this.profiles.forEach(p => {
+                    if (typeof p.id === 'number' || /^\d+$/.test(p.id)) {
+                        const oldId = p.id;
+                        p.id = this.slugify(p.name) || 'setup';
+                        // Update localStorage if this was the active profile
+                        if (localStorage.getItem('vmixAdManager_activeProfileId') == oldId) {
+                            localStorage.setItem('vmixAdManager_activeProfileId', p.id);
+                        }
+                        migrated = true;
+                    }
+                });
+                if (migrated) this.syncToServer('profiles', this.profiles);
             } else {
                 this.profiles = [this.buildDefaultProfile()];
                 this.syncToServer('profiles', this.profiles);
