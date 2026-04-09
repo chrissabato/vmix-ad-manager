@@ -162,6 +162,7 @@ const App = {
             useProxy: this.elements.useProxy.checked
         };
         localStorage.setItem('vmixAdManager_settings', JSON.stringify(this.settings));
+        this.syncToServer('settings', this.settings);
 
         this.elements.settingsSaved.classList.remove('hidden');
         setTimeout(() => {
@@ -170,6 +171,13 @@ const App = {
 
         this.updateConnectionStatus();
         this.log('Settings saved.');
+    },
+
+    syncToServer(type, data) {
+        const body = new FormData();
+        body.append('type', type);
+        body.append('data', JSON.stringify(data));
+        fetch('save.php', { method: 'POST', body }).catch(() => {});
     },
 
     toggleSettings() {
@@ -849,6 +857,7 @@ const App = {
 
     saveVideos() {
         localStorage.setItem('vmixAdManager_videos', JSON.stringify(this.videos));
+        this.syncToServer('videos', this.videos);
         this.updateVideoCount();
         this.updateLibraryCount();
         this.renderVideoList();
