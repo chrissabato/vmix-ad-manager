@@ -33,6 +33,16 @@
                             [collapse]
                         </button>
                     </h2>
+                    <!-- Profile Selector -->
+                    <div class="flex gap-2 items-center mb-4 pb-4 border-b border-gray-700">
+                        <label class="text-sm font-medium text-gray-300 whitespace-nowrap">Setup</label>
+                        <select id="profileSelect" class="flex-1 bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-white text-sm focus:outline-none focus:border-blue-500">
+                        </select>
+                        <button id="renameProfile" class="text-gray-400 hover:text-white text-sm px-1" title="Rename">✎</button>
+                        <button id="addProfile" class="text-green-400 hover:text-green-300 font-bold text-lg leading-none px-1" title="Add setup">+</button>
+                        <button id="deleteProfile" class="text-red-400 hover:text-red-300 text-sm px-1" title="Delete setup">✕</button>
+                    </div>
+
                     <div id="settingsContent" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-300 mb-1">vMix IP Address</label>

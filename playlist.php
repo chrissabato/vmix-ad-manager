@@ -4,15 +4,16 @@
  *
  * Generates a weighted random ad selection and replaces the vMix playlist.
  *
- * GET /playlist.php?count=4
+ * GET /playlist.php?count=2
+ * GET /playlist.php?count=2&profile=<id>   (target a specific setup)
  *
- * Response: { success, count, playlist: ["file1.mp4", ...] }
+ * Response: { success, count, profile, playlist: ["file1.mp4", ...] }
  */
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 
-// --- Load server-side config ---
+// --- Load server-side data ---
 
 function load_json(string $path): ?array {
     if (!file_exists($path)) return null;
@@ -20,12 +21,12 @@ function load_json(string $path): ?array {
     return is_array($decoded) ? $decoded : null;
 }
 
-$settings = load_json('data/settings.json');
+$profiles = load_json('data/profiles.json');
 $videos   = load_json('data/videos.json');
 
-if (!$settings) {
+if (!$profiles || count($profiles) === 0) {
     http_response_code(503);
-    echo json_encode(['success' => false, 'error' => 'Settings not saved yet. Open the UI and click Save Settings.']);
+    echo json_encode(['success' => false, 'error' => 'No setups saved yet. Open the UI and save a setup.']);
     exit;
 }
 
@@ -35,16 +36,37 @@ if (!$videos || count($videos) === 0) {
     exit;
 }
 
-// --- Validate required settings ---
+// --- Select profile ---
 
-$vmixIp    = $settings['vmixIp']    ?? '';
-$vmixPort  = $settings['vmixPort']  ?? '8088';
-$vmixInput = $settings['vmixInput'] ?? '';
-$folder    = $settings['folderPath'] ?? '';
+$profileParam = $_GET['profile'] ?? null;
+$profile = null;
+
+if ($profileParam !== null) {
+    foreach ($profiles as $p) {
+        if ((string)$p['id'] === (string)$profileParam || strtolower($p['name']) === strtolower($profileParam)) {
+            $profile = $p;
+            break;
+        }
+    }
+    if (!$profile) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'error' => "Profile not found: {$profileParam}"]);
+        exit;
+    }
+} else {
+    $profile = $profiles[0];
+}
+
+// --- Validate required profile fields ---
+
+$vmixIp    = $profile['vmixIp']     ?? '';
+$vmixPort  = $profile['vmixPort']   ?? '8088';
+$vmixInput = $profile['vmixInput']  ?? '';
+$folder    = $profile['folderPath'] ?? '';
 
 if (!$vmixIp || !$vmixInput || !$folder) {
     http_response_code(503);
-    echo json_encode(['success' => false, 'error' => 'vmixIp, vmixInput, and folderPath must be set in Settings.']);
+    echo json_encode(['success' => false, 'error' => "Profile \"{$profile['name']}\" is missing vmixIp, vmixInput, or folderPath."]);
     exit;
 }
 
@@ -141,6 +163,7 @@ if (count($added) === 0) {
 
 echo json_encode([
     'success'  => true,
+    'profile'  => $profile['name'],
     'count'    => count($added),
     'playlist' => $added,
 ]);

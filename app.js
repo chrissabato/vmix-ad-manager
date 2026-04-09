@@ -3,6 +3,8 @@
 const App = {
     // State
     videos: [],
+    profiles: [],
+    activeProfileId: null,
     pendingFiles: [],
     selectedDurationSeconds: 0,
     dashboardMode: false,
@@ -41,17 +43,17 @@ const App = {
         this.toggleAutoRefresh();
     },
 
-    // Load settings and videos from server; fall back to localStorage
+    // Load profiles (server) and videos (server), active profile (localStorage)
     async loadFromServer() {
         try {
             const response = await fetch('load.php');
             const data = await response.json();
 
-            if (data.settings) {
-                this.settings = data.settings;
-                localStorage.setItem('vmixAdManager_settings', JSON.stringify(this.settings));
+            if (data.profiles && data.profiles.length > 0) {
+                this.profiles = data.profiles;
             } else {
-                this.loadSettings();
+                this.profiles = [this.buildDefaultProfile()];
+                this.syncToServer('profiles', this.profiles);
             }
 
             if (data.videos) {
@@ -60,23 +62,45 @@ const App = {
             } else {
                 this.loadVideos();
             }
-
-            // Populate settings fields
-            this.elements.vmixIp.value     = this.settings.vmixIp    || '127.0.0.1';
-            this.elements.vmixPort.value   = this.settings.vmixPort   || '8088';
-            this.elements.vmixInput.value  = this.settings.vmixInput  || '';
-            this.elements.folderPath.value = this.settings.folderPath || '';
-            this.elements.useProxy.checked = this.settings.useProxy !== false;
         } catch (e) {
-            // Server unavailable — fall back to localStorage
-            this.loadSettings();
+            this.profiles = [this.buildDefaultProfile()];
             this.loadVideos();
         }
+
+        // Active profile is per-browser (localStorage)
+        const savedId = Number(localStorage.getItem('vmixAdManager_activeProfileId'));
+        const found = this.profiles.find(p => p.id === savedId);
+        this.activeProfileId = found ? found.id : this.profiles[0].id;
+        localStorage.setItem('vmixAdManager_activeProfileId', this.activeProfileId);
+
+        this.renderProfileSelect();
+        this.applyActiveProfile();
+    },
+
+    // Migrate old flat settings into a Default profile on first load
+    buildDefaultProfile() {
+        const old = localStorage.getItem('vmixAdManager_settings');
+        const base = old ? JSON.parse(old) : {};
+        return {
+            id: Date.now(),
+            name: 'Default',
+            vmixIp:      base.vmixIp      || '127.0.0.1',
+            vmixPort:    base.vmixPort     || '8088',
+            vmixInput:   base.vmixInput    || '',
+            folderPath:  base.folderPath   || '',
+            useProxy:    base.useProxy !== false,
+        };
     },
 
     // Cache DOM elements for performance
     cacheElements() {
         this.elements = {
+            // Profiles
+            profileSelect: document.getElementById('profileSelect'),
+            addProfile:    document.getElementById('addProfile'),
+            renameProfile: document.getElementById('renameProfile'),
+            deleteProfile: document.getElementById('deleteProfile'),
+
             // Settings
             vmixIp: document.getElementById('vmixIp'),
             vmixPort: document.getElementById('vmixPort'),
@@ -141,6 +165,12 @@ const App = {
 
     // Bind event listeners
     bindEvents() {
+        // Profiles
+        this.elements.profileSelect.addEventListener('change', (e) => this.selectProfile(Number(e.target.value)));
+        this.elements.addProfile.addEventListener('click', () => this.addProfile());
+        this.elements.renameProfile.addEventListener('click', () => this.renameProfile());
+        this.elements.deleteProfile.addEventListener('click', () => this.deleteProfile());
+
         // Settings
         this.elements.saveSettings.addEventListener('click', () => this.saveSettings());
         this.elements.toggleSettings.addEventListener('click', () => this.toggleSettings());
@@ -173,29 +203,105 @@ const App = {
         this.elements.clearLog.addEventListener('click', () => this.clearLog());
     },
 
-    // Settings management
-    loadSettings() {
-        const saved = localStorage.getItem('vmixAdManager_settings');
-        if (saved) {
-            this.settings = JSON.parse(saved);
-            this.elements.vmixIp.value = this.settings.vmixIp;
-            this.elements.vmixPort.value = this.settings.vmixPort;
-            this.elements.vmixInput.value = this.settings.vmixInput;
-            this.elements.folderPath.value = this.settings.folderPath;
-            this.elements.useProxy.checked = this.settings.useProxy !== false;
-        }
+    // Profile management
+    getActiveProfile() {
+        return this.profiles.find(p => p.id === this.activeProfileId) || this.profiles[0];
     },
 
-    saveSettings() {
+    applyActiveProfile() {
+        const p = this.getActiveProfile();
         this.settings = {
-            vmixIp: this.elements.vmixIp.value.trim(),
-            vmixPort: this.elements.vmixPort.value.trim() || '8088',
-            vmixInput: this.elements.vmixInput.value.trim(),
-            folderPath: this.normalizePath(this.elements.folderPath.value.trim()),
-            useProxy: this.elements.useProxy.checked
+            vmixIp:     p.vmixIp,
+            vmixPort:   p.vmixPort,
+            vmixInput:  p.vmixInput,
+            folderPath: p.folderPath,
+            useProxy:   p.useProxy,
         };
-        localStorage.setItem('vmixAdManager_settings', JSON.stringify(this.settings));
-        this.syncToServer('settings', this.settings);
+        this.elements.vmixIp.value      = p.vmixIp      || '127.0.0.1';
+        this.elements.vmixPort.value    = p.vmixPort     || '8088';
+        this.elements.vmixInput.value   = p.vmixInput    || '';
+        this.elements.folderPath.value  = p.folderPath   || '';
+        this.elements.useProxy.checked  = p.useProxy !== false;
+    },
+
+    renderProfileSelect() {
+        this.elements.profileSelect.innerHTML = this.profiles.map(p =>
+            `<option value="${p.id}" ${p.id === this.activeProfileId ? 'selected' : ''}>${this.escapeHtml(p.name)}</option>`
+        ).join('');
+        this.elements.deleteProfile.disabled = this.profiles.length <= 1;
+        this.elements.deleteProfile.style.opacity = this.profiles.length <= 1 ? '0.3' : '1';
+    },
+
+    selectProfile(id) {
+        const profile = this.profiles.find(p => p.id === id);
+        if (!profile) return;
+        this.activeProfileId = id;
+        localStorage.setItem('vmixAdManager_activeProfileId', id);
+        this.applyActiveProfile();
+        this.updateConnectionStatus();
+        this.updateApiUrl();
+        this.log(`Switched to setup: ${profile.name}`);
+    },
+
+    addProfile() {
+        const name = prompt('Setup name:');
+        if (!name || !name.trim()) return;
+        const profile = {
+            id: Date.now(),
+            name: name.trim(),
+            vmixIp: '127.0.0.1',
+            vmixPort: '8088',
+            vmixInput: '',
+            folderPath: '',
+            useProxy: true,
+        };
+        this.profiles.push(profile);
+        this.syncToServer('profiles', this.profiles);
+        this.activeProfileId = profile.id;
+        localStorage.setItem('vmixAdManager_activeProfileId', profile.id);
+        this.renderProfileSelect();
+        this.applyActiveProfile();
+        this.updateConnectionStatus();
+        this.updateApiUrl();
+        this.log(`Created setup: ${profile.name}`);
+    },
+
+    renameProfile() {
+        const profile = this.getActiveProfile();
+        const name = prompt('Rename setup:', profile.name);
+        if (!name || !name.trim() || name.trim() === profile.name) return;
+        profile.name = name.trim();
+        this.syncToServer('profiles', this.profiles);
+        this.renderProfileSelect();
+        this.log(`Renamed setup to: ${profile.name}`);
+    },
+
+    deleteProfile() {
+        if (this.profiles.length <= 1) return;
+        const profile = this.getActiveProfile();
+        if (!confirm(`Delete setup "${profile.name}"?`)) return;
+        this.profiles = this.profiles.filter(p => p.id !== this.activeProfileId);
+        this.syncToServer('profiles', this.profiles);
+        this.activeProfileId = this.profiles[0].id;
+        localStorage.setItem('vmixAdManager_activeProfileId', this.activeProfileId);
+        this.renderProfileSelect();
+        this.applyActiveProfile();
+        this.updateConnectionStatus();
+        this.updateApiUrl();
+        this.log(`Deleted setup: ${profile.name}`);
+    },
+
+    // Settings — writes to the active profile
+    saveSettings() {
+        const profile = this.getActiveProfile();
+        profile.vmixIp     = this.elements.vmixIp.value.trim();
+        profile.vmixPort   = this.elements.vmixPort.value.trim() || '8088';
+        profile.vmixInput  = this.elements.vmixInput.value.trim();
+        profile.folderPath = this.normalizePath(this.elements.folderPath.value.trim());
+        profile.useProxy   = this.elements.useProxy.checked;
+
+        this.settings = { ...profile };
+        this.syncToServer('profiles', this.profiles);
 
         this.elements.settingsSaved.classList.remove('hidden');
         setTimeout(() => {
@@ -204,13 +310,15 @@ const App = {
 
         this.updateConnectionStatus();
         this.updateApiUrl();
-        this.log('Settings saved.');
+        this.log(`Settings saved (${profile.name}).`);
     },
 
     updateApiUrl() {
         const el = document.getElementById('apiUrl');
         if (!el) return;
-        el.textContent = new URL('playlist.php?count=2', window.location.href).href;
+        const profile = this.getActiveProfile();
+        const params = profile ? `?count=2&profile=${profile.id}` : '?count=2';
+        el.textContent = new URL(`playlist.php${params}`, window.location.href).href;
     },
 
     syncToServer(type, data) {

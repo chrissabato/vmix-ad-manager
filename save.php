@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $type = $_POST['type'] ?? '';
 $data = $_POST['data'] ?? '';
 
-if (!in_array($type, ['settings', 'videos'], true)) {
+if (!in_array($type, ['profiles', 'videos'], true)) {
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'type must be settings or videos']);
     exit;
