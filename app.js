@@ -32,6 +32,7 @@ const App = {
         this.updateVideoCount();
         this.updateConnectionStatus();
         this.updateLibraryCount();
+        this.updateApiUrl();
         this.renderVideoList();
         this.renderAvailableAds();
         this.log('Application initialized.');
@@ -202,7 +203,15 @@ const App = {
         }, 2000);
 
         this.updateConnectionStatus();
+        this.updateApiUrl();
         this.log('Settings saved.');
+    },
+
+    updateApiUrl() {
+        const el = document.getElementById('apiUrl');
+        if (!el) return;
+        const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
+        el.textContent = `${base}playlist.php?count=4`;
     },
 
     syncToServer(type, data) {
