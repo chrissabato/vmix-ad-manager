@@ -106,7 +106,7 @@ foreach ($videos as $video) {
     }
 }
 
-$unique_groups = array_unique(array_map(fn($v) => get_ad_base($v['filename']), $videos));
+$unique_groups = array_unique(array_map(function($v) { return get_ad_base($v['filename']); }, $videos));
 $can_avoid_back_to_back = count($unique_groups) > 1;
 
 $selected = [];
@@ -116,7 +116,7 @@ for ($i = 0; $i < $count; $i++) {
     if (!$can_avoid_back_to_back || !$last) {
         $selected[] = $pool[array_rand($pool)];
     } else {
-        $filtered = array_values(array_filter($pool, fn($v) => !is_same_group($v, $last)));
+        $filtered = array_values(array_filter($pool, function($v) use ($last) { return !is_same_group($v, $last); }));
         $source = count($filtered) > 0 ? $filtered : $pool;
         $selected[] = $source[array_rand($source)];
     }
