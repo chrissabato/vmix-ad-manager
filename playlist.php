@@ -71,7 +71,8 @@ if (!$vmixIp || !$vmixInput || !$folder) {
 }
 
 // Ensure trailing backslash on folder path
-if ($folder && !str_ends_with($folder, '\\') && !str_ends_with($folder, '/')) {
+$last = substr($folder, -1);
+if ($folder && $last !== '\\' && $last !== '/') {
     $folder .= '\\';
 }
 
