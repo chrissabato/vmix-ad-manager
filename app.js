@@ -329,11 +329,19 @@ const App = {
     },
 
     updateApiUrl() {
-        const el = document.getElementById('apiUrl');
-        if (!el) return;
         const profile = this.getActiveProfile();
-        const params = profile ? `?count=2&profile=${profile.id}` : '?count=2';
-        el.textContent = new URL(`playlist.php${params}`, window.location.href).href;
+
+        const el = document.getElementById('apiUrl');
+        if (el) {
+            const params = profile ? `?count=2&profile=${profile.id}` : '?count=2';
+            el.textContent = new URL(`playlist.php${params}`, window.location.href).href;
+        }
+
+        const endHereEl = document.getElementById('endHereUrl');
+        if (endHereEl) {
+            const endHereParams = profile ? `?profile=${profile.id}` : '';
+            endHereEl.textContent = new URL(`end-here.php${endHereParams}`, window.location.href).href;
+        }
     },
 
     syncToServer(type, data) {
